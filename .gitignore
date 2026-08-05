@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+venv/
+.venv/
+
+# Environment
+.env
+*.env
+!.env.example
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Database
+*.db
+
+# Testing
+.pytest_cache/
+
+# Nested repo clones (accidental)
+/SwaraVeda/
