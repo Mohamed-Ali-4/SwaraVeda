@@ -58,7 +58,7 @@ create table if not exists segments (
   speaker_label text,
   verified_by uuid references contributors(id),
   verified_at timestamptz,
-  embedding vector(768),
+  embedding vector(384),
   unique (recording_id, seq)
 );
 

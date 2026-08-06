@@ -12,6 +12,19 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    env_file:
+      - .env
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    volumes:
+      - worker-tmp:/tmp/swaraveda
+
   db:
     image: pgvector/pgvector:pg16
     environment:
@@ -31,3 +44,4 @@ services:
 
 volumes:
   pgdata:
+  worker-tmp:

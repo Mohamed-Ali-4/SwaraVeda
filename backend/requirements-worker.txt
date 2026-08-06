@@ -1,0 +1,8 @@
+# ML Worker dependencies (install on top of base requirements.txt)
+faster-whisper==1.1.0
+sentence-transformers==3.3.1
+httpx==0.28.1
+
+# Optional: speaker diarization (requires HuggingFace token + model agreement)
+# pyannote.audio==3.3.2
+# torch>=2.0
