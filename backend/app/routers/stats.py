@@ -3,14 +3,14 @@ from sqlmodel import Session
 from sqlalchemy import text
 
 from app.db import get_session
+from app.schemas import StatsOut
 
 router = APIRouter(tags=["stats"])
 
 
-@router.get("/stats")
+@router.get("/stats", response_model=StatsOut)
 def stats(session: Session = Depends(get_session)):
-    """Powers the dashboard your frontend teammates will build."""
-    rows = session.exec(text("""
+    row = session.execute(text("""
         select
           (select count(*) from recordings) as recordings,
           (select count(*) from recordings where status = 'verified') as verified_recordings,
@@ -20,4 +20,4 @@ def stats(session: Session = Depends(get_session)):
           (select count(*) from contributors) as contributors,
           (select coalesce(sum(duration_seconds), 0) from recordings) as total_seconds
     """)).mappings().first()
-    return dict(rows)
+    return dict(row)

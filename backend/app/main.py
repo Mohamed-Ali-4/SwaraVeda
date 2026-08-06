@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
-from app.routers import auth_routes, dialects, recordings, segments, search, stats
+from app.routers import auth_routes, dialects, recordings, segments, search, stats, tags, jobs
 
 app = FastAPI(
     title="SwaraVeda API",
@@ -24,6 +24,8 @@ app.include_router(recordings.router)
 app.include_router(segments.router)
 app.include_router(search.router)
 app.include_router(stats.router)
+app.include_router(tags.router)
+app.include_router(jobs.router)
 
 
 @app.get("/health", tags=["meta"])

@@ -1,9 +1,13 @@
-from datetime import datetime, date
+from datetime import datetime, date, timezone
 from decimal import Decimal
 from typing import Optional
 from uuid import UUID, uuid4
 
 from sqlmodel import SQLModel, Field
+
+
+def _utcnow() -> datetime:
+    return datetime.now(timezone.utc)
 
 
 class Contributor(SQLModel, table=True):
@@ -14,7 +18,7 @@ class Contributor(SQLModel, table=True):
     password_hash: str
     role: str = "contributor"
     native_dialect: Optional[str] = None
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=_utcnow)
 
 
 class Dialect(SQLModel, table=True):
@@ -26,7 +30,7 @@ class Dialect(SQLModel, table=True):
     script: Optional[str] = None
     endangerment_status: Optional[str] = None
     description: Optional[str] = None
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=_utcnow)
 
 
 class Recording(SQLModel, table=True):
@@ -48,7 +52,7 @@ class Recording(SQLModel, table=True):
     licence: str = "CC-BY-NC-4.0"
     status: str = "uploaded"
     notes: Optional[str] = None
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=_utcnow)
 
 
 class Segment(SQLModel, table=True):
@@ -88,5 +92,5 @@ class Job(SQLModel, table=True):
     status: str = "queued"
     progress: int = 0
     error: Optional[str] = None
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=_utcnow)
+    updated_at: datetime = Field(default_factory=_utcnow)

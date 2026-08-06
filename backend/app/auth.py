@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 from uuid import UUID
 
@@ -25,7 +25,7 @@ def verify_password(raw: str, hashed: str) -> bool:
 
 
 def create_token(user_id: UUID, role: str) -> str:
-    expire = datetime.utcnow() + timedelta(minutes=settings.JWT_EXPIRE_MINUTES)
+    expire = datetime.now(timezone.utc) + timedelta(minutes=settings.JWT_EXPIRE_MINUTES)
     payload = {"sub": str(user_id), "role": role, "exp": expire}
     return jwt.encode(payload, settings.JWT_SECRET, algorithm="HS256")
 
@@ -38,8 +38,8 @@ def current_user(
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Not authenticated")
     try:
         payload = jwt.decode(creds.credentials, settings.JWT_SECRET, algorithms=["HS256"])
-        user_id = payload.get("sub")
-    except JWTError:
+        user_id = UUID(payload.get("sub"))
+    except (JWTError, ValueError):
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Invalid or expired token")
 
     user = session.exec(select(Contributor).where(Contributor.id == user_id)).first()

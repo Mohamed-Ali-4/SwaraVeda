@@ -3,8 +3,12 @@ from sqlmodel import Session, select
 
 from app.db import get_session
 from app.models import Contributor
-from app.schemas import RegisterIn, LoginIn, TokenOut
-from app.auth import hash_password, verify_password, create_token, current_user
+from app.schemas import (
+    RegisterIn, LoginIn, TokenOut, ProfileOut, ProfilePatch, ChangePasswordIn,
+)
+from app.auth import (
+    hash_password, verify_password, create_token, current_user,
+)
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -43,12 +47,42 @@ def login(body: LoginIn, session: Session = Depends(get_session)):
     )
 
 
-@router.get("/me")
+@router.post("/refresh", response_model=TokenOut)
+def refresh(user: Contributor = Depends(current_user)):
+    return TokenOut(
+        access_token=create_token(user.id, user.role),
+        display_name=user.display_name,
+        role=user.role,
+    )
+
+
+@router.get("/me", response_model=ProfileOut)
 def me(user: Contributor = Depends(current_user)):
-    return {
-        "id": user.id,
-        "display_name": user.display_name,
-        "email": user.email,
-        "role": user.role,
-        "native_dialect": user.native_dialect,
-    }
+    return user
+
+
+@router.patch("/me", response_model=ProfileOut)
+def update_profile(
+    body: ProfilePatch,
+    session: Session = Depends(get_session),
+    user: Contributor = Depends(current_user),
+):
+    for k, v in body.model_dump(exclude_unset=True).items():
+        setattr(user, k, v)
+    session.add(user)
+    session.commit()
+    session.refresh(user)
+    return user
+
+
+@router.post("/change-password", status_code=204)
+def change_password(
+    body: ChangePasswordIn,
+    session: Session = Depends(get_session),
+    user: Contributor = Depends(current_user),
+):
+    if not verify_password(body.current_password, user.password_hash):
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Current password is incorrect")
+    user.password_hash = hash_password(body.new_password)
+    session.add(user)
+    session.commit()

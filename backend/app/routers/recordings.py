@@ -7,7 +7,10 @@ from sqlmodel import Session, select, func
 
 from app.db import get_session
 from app.models import Recording, Segment, Contributor, Job
-from app.schemas import RecordingIn, RecordingPatch, UploadUrlIn, UploadUrlOut
+from app.schemas import (
+    RecordingIn, RecordingPatch, RecordingOut, RecordingDetail,
+    UploadUrlIn, UploadUrlOut, SegmentOut, JobOut, Page,
+)
 from app.auth import current_user
 from app.storage import create_signed_upload, public_url
 
@@ -22,7 +25,7 @@ def upload_url(body: UploadUrlIn, user: Contributor = Depends(current_user)):
     return UploadUrlOut(upload_url=signed["url"], storage_path=path, token=signed.get("token"))
 
 
-@router.post("", response_model=Recording, status_code=201)
+@router.post("", response_model=RecordingOut, status_code=201)
 def create_recording(
     body: RecordingIn,
     session: Session = Depends(get_session),
@@ -38,7 +41,7 @@ def create_recording(
     return rec
 
 
-@router.get("")
+@router.get("", response_model=Page)
 def list_recordings(
     session: Session = Depends(get_session),
     dialect_id: Optional[UUID] = None,
@@ -66,7 +69,7 @@ def list_recordings(
     return {"items": items, "total": total, "page": page, "page_size": page_size}
 
 
-@router.get("/{recording_id}")
+@router.get("/{recording_id}", response_model=RecordingDetail)
 def get_recording(recording_id: UUID, session: Session = Depends(get_session)):
     rec = session.get(Recording, recording_id)
     if not rec:
@@ -77,7 +80,7 @@ def get_recording(recording_id: UUID, session: Session = Depends(get_session)):
     return {"recording": rec, "segments": segments}
 
 
-@router.patch("/{recording_id}", response_model=Recording)
+@router.patch("/{recording_id}", response_model=RecordingOut)
 def patch_recording(
     recording_id: UUID,
     body: RecordingPatch,
@@ -98,7 +101,22 @@ def patch_recording(
     return rec
 
 
-@router.post("/{recording_id}/transcribe")
+@router.delete("/{recording_id}", status_code=204)
+def delete_recording(
+    recording_id: UUID,
+    session: Session = Depends(get_session),
+    user: Contributor = Depends(current_user),
+):
+    rec = session.get(Recording, recording_id)
+    if not rec:
+        raise HTTPException(404, "Recording not found")
+    if rec.contributor_id != user.id and user.role not in ("admin",):
+        raise HTTPException(403, "Only the owner or an admin can delete")
+    session.delete(rec)
+    session.commit()
+
+
+@router.post("/{recording_id}/transcribe", response_model=JobOut)
 def transcribe(
     recording_id: UUID,
     session: Session = Depends(get_session),
@@ -114,12 +132,10 @@ def transcribe(
     session.add(rec)
     session.commit()
     session.refresh(job)
-    # TODO: enqueue with RQ once the ML worker exists:
-    # queue.enqueue(run_transcription, str(recording_id), str(job.id))
-    return {"job_id": job.id, "status": job.status}
+    return job
 
 
-@router.get("/{recording_id}/segments", response_model=List[Segment])
+@router.get("/{recording_id}/segments", response_model=List[SegmentOut])
 def list_segments(recording_id: UUID, session: Session = Depends(get_session)):
     return session.exec(
         select(Segment).where(Segment.recording_id == recording_id).order_by(Segment.seq)
