@@ -96,6 +96,16 @@ create index if not exists recordings_status_idx on recordings (status);
 -- Create only after you have a few hundred rows with embeddings:
 -- create index segments_embedding_idx on segments using hnsw (embedding vector_cosine_ops);
 
+-- Block Supabase's public API from reading these tables directly
+-- (the backend connects to the database directly, so it isn't affected)
+alter table contributors enable row level security;
+alter table dialects enable row level security;
+alter table recordings enable row level security;
+alter table segments enable row level security;
+alter table tags enable row level security;
+alter table recording_tags enable row level security;
+alter table jobs enable row level security;
+
 insert into dialects (name, iso_code, region, script, endangerment_status)
-values ('Sample Dialect', 'xxx', 'Karnataka', 'kannada', 'definitely endangered')
-on conflict do nothing;
+select 'Sample Dialect', 'xxx', 'Karnataka', 'kannada', 'definitely endangered'
+where not exists (select 1 from dialects where name = 'Sample Dialect');
