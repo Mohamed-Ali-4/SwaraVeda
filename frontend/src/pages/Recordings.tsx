@@ -1,120 +1,139 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { HiOutlineMicrophone, HiOutlineClock, HiOutlineChevronLeft, HiOutlineChevronRight } from 'react-icons/hi';
+import { useSearchParams } from 'react-router-dom';
+import { HiOutlineMicrophone, HiOutlineChevronLeft, HiOutlineChevronRight, HiOutlineSearch, HiOutlineCollection } from 'react-icons/hi';
 import api from '../lib/api';
+import { useAuth } from '../lib/auth';
+import { useDialects } from '../lib/dialects';
+import { capitalize } from '../lib/format';
+import { genres, type Recording } from '../lib/types';
+import { ButtonLink, EmptyState, PageHeader, PageSpinner } from '../components/ui';
+import RecordingCard from '../components/RecordingCard';
 
-interface Recording {
-  id: string;
-  title: string;
-  status: string;
-  genre?: string;
-  duration_seconds?: number;
-  created_at: string;
-}
-
-const statusColors: Record<string, string> = {
-  uploaded: 'bg-stone-100 text-stone-600',
-  transcribing: 'bg-yellow-100 text-yellow-700',
-  transcribed: 'bg-blue-100 text-blue-700',
-  verified: 'bg-green-100 text-green-700',
-};
+const statuses = [
+  { value: 'transcribed', label: 'Needs review' },
+  { value: 'verified', label: 'Verified' },
+  { value: 'transcribing', label: 'Transcribing' },
+  { value: 'uploaded', label: 'Not transcribed' },
+];
+const PAGE_SIZE = 12;
+const selectClass = 'rounded-lg border border-line-strong bg-surface px-3 py-2 text-sm text-ink-soft focus:border-saffron-500 focus:outline-none';
 
 export default function Recordings() {
-  const [recordings, setRecordings] = useState<Recording[]>([]);
+  const { user } = useAuth();
+  const { dialects, nameOf } = useDialects();
+  const [params, setParams] = useSearchParams();
+  const page = Math.max(1, Number(params.get('page')) || 1);
+  const q = params.get('q') ?? '';
+  const dialect = params.get('dialect') ?? '';
+  const status = params.get('status') ?? '';
+  const genre = params.get('genre') ?? '';
+  const [draft, setDraft] = useState(q);
+  const [items, setItems] = useState<Recording[]>([]);
   const [total, setTotal] = useState(0);
-  const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
-  const pageSize = 12;
+
+  const update = (next: Record<string, string>) => {
+    const p = new URLSearchParams(params);
+    Object.entries(next).forEach(([k, v]) => (v ? p.set(k, v) : p.delete(k)));
+    if (!('page' in next)) p.delete('page');
+    setParams(p, { replace: true });
+  };
+
+  // Search titles as the user types, after a short pause.
+  useEffect(() => {
+    if (draft === q) return;
+    const t = window.setTimeout(() => update({ q: draft.trim() }), 350);
+    return () => window.clearTimeout(t);
+  }, [draft]); // oxlint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     setLoading(true);
-    api.get('/recordings', { params: { page, page_size: pageSize } })
-      .then((res) => {
-        setRecordings(res.data.items);
-        setTotal(res.data.total);
-      })
+    api.get('/recordings', {
+      params: {
+        page, page_size: PAGE_SIZE, q: q || undefined, dialect_id: dialect || undefined,
+        status: status || undefined, genre: genre || undefined,
+      },
+    })
+      .then((res) => { setItems(res.data.items); setTotal(res.data.total); })
+      .catch(() => { setItems([]); setTotal(0); })
       .finally(() => setLoading(false));
-  }, [page]);
+  }, [page, q, dialect, status, genre, user]);
 
-  const totalPages = Math.ceil(total / pageSize);
+  const pages = Math.ceil(total / PAGE_SIZE);
+  const filtered = !!(q || dialect || status || genre);
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-stone-800">Recordings</h1>
-        <Link
-          to="/recordings/new"
-          className="flex items-center gap-2 px-4 py-2.5 bg-amber-600 text-white rounded-lg hover:bg-amber-700 no-underline text-sm font-medium transition-colors"
-        >
-          <HiOutlineMicrophone className="w-5 h-5" />
-          New Recording
-        </Link>
+      <PageHeader
+        eyebrow="The archive"
+        title="Recordings"
+        subtitle="Songs, stories, prayers and conversations, recorded by the people who speak them."
+        actions={user && <ButtonLink to="/recordings/new" icon={<HiOutlineMicrophone className="w-5 h-5" />}>New recording</ButtonLink>}
+      />
+
+      <div className="mb-6 flex flex-wrap gap-2">
+        <div className="relative min-w-56 flex-1">
+          <HiOutlineSearch className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-faint" />
+          <input
+            type="search"
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            placeholder="Search titles and speakers"
+            aria-label="Search titles and speakers"
+            className="w-full rounded-lg border border-line-strong bg-surface py-2 pl-9 pr-3 text-sm focus:border-saffron-500 focus:outline-none"
+          />
+        </div>
+        <select value={dialect} onChange={(e) => update({ dialect: e.target.value })} aria-label="Dialect" className={selectClass}>
+          <option value="">All dialects</option>
+          {dialects.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
+        </select>
+        <select value={status} onChange={(e) => update({ status: e.target.value })} aria-label="Status" className={selectClass}>
+          <option value="">Any status</option>
+          {statuses.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
+        </select>
+        <select value={genre} onChange={(e) => update({ genre: e.target.value })} aria-label="Kind" className={selectClass}>
+          <option value="">Any kind</option>
+          {genres.map((g) => <option key={g} value={g}>{capitalize(g)}</option>)}
+        </select>
+        {filtered && (
+          <button onClick={() => { setDraft(''); setParams({}, { replace: true }); }} className="px-2 text-sm font-medium text-saffron-600 hover:text-saffron-700">
+            Clear filters
+          </button>
+        )}
       </div>
 
-      {loading ? (
-        <div className="flex justify-center py-12">
-          <div className="animate-spin h-8 w-8 border-4 border-amber-500 border-t-transparent rounded-full" />
-        </div>
-      ) : recordings.length === 0 ? (
-        <div className="text-center py-16 bg-white rounded-xl border border-stone-200">
-          <div className="text-5xl mb-4">🎙️</div>
-          <h3 className="text-lg font-medium text-stone-700">No recordings yet</h3>
-          <p className="text-stone-500 mt-1">Be the first to contribute!</p>
-          <Link to="/recordings/new" className="inline-block mt-4 px-6 py-2.5 bg-amber-600 text-white rounded-lg hover:bg-amber-700 no-underline text-sm">
-            Upload Recording
-          </Link>
-        </div>
+      {loading ? <PageSpinner /> : items.length === 0 ? (
+        filtered ? (
+          <EmptyState icon={<HiOutlineSearch className="w-7 h-7" />} title="No recordings match">
+            Try removing a filter or searching for something else.
+          </EmptyState>
+        ) : (
+          <EmptyState
+            icon={<HiOutlineCollection className="w-7 h-7" />}
+            title="The archive is empty, for now"
+            action={<ButtonLink to={user ? '/recordings/new' : '/register'} icon={<HiOutlineMicrophone className="w-5 h-5" />}>Add the first recording</ButtonLink>}
+          >
+            Every archive starts with one voice. Record a song, a story or a conversation in your dialect.
+          </EmptyState>
+        )
       ) : (
         <>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {recordings.map((rec) => (
-              <Link
-                key={rec.id}
-                to={`/recordings/${rec.id}`}
-                className="bg-white rounded-xl border border-stone-200 p-5 hover:border-amber-300 hover:shadow-md transition-all no-underline"
-              >
-                <div className="flex items-start justify-between mb-3">
-                  <h3 className="font-semibold text-stone-800 line-clamp-1">{rec.title}</h3>
-                  <span className={`text-xs px-2 py-1 rounded-full font-medium ${statusColors[rec.status] || 'bg-stone-100 text-stone-600'}`}>
-                    {rec.status}
-                  </span>
-                </div>
-                <div className="flex items-center gap-4 text-sm text-stone-500">
-                  {rec.genre && <span className="capitalize">{rec.genre}</span>}
-                  {rec.duration_seconds && (
-                    <span className="flex items-center gap-1">
-                      <HiOutlineClock className="w-4 h-4" />
-                      {Math.floor(rec.duration_seconds / 60)}:{String(Math.floor(rec.duration_seconds % 60)).padStart(2, '0')}
-                    </span>
-                  )}
-                </div>
-                <div className="text-xs text-stone-400 mt-2">
-                  {new Date(rec.created_at).toLocaleDateString()}
-                </div>
-              </Link>
-            ))}
+          <p className="mb-4 text-sm text-muted">{total} recording{total === 1 ? '' : 's'}</p>
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {items.map((rec) => <RecordingCard key={rec.id} rec={rec} dialect={nameOf(rec.dialect_id)} />)}
           </div>
-
-          {totalPages > 1 && (
-            <div className="flex items-center justify-center gap-4 mt-8">
-              <button
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={page === 1}
-                className="p-2 rounded-lg hover:bg-stone-100 disabled:opacity-30 cursor-pointer"
-              >
+          {pages > 1 && (
+            <nav className="mt-10 flex items-center justify-center gap-3" aria-label="Pages">
+              <button onClick={() => update({ page: String(page - 1) })} disabled={page === 1}
+                className="rounded-lg border border-line-strong bg-surface p-2 text-ink-soft hover:bg-sunken disabled:opacity-40" aria-label="Previous page">
                 <HiOutlineChevronLeft className="w-5 h-5" />
               </button>
-              <span className="text-sm text-stone-500">
-                Page {page} of {totalPages}
-              </span>
-              <button
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                disabled={page === totalPages}
-                className="p-2 rounded-lg hover:bg-stone-100 disabled:opacity-30 cursor-pointer"
-              >
+              <span className="text-sm text-muted tabular">Page {page} of {pages}</span>
+              <button onClick={() => update({ page: String(page + 1) })} disabled={page >= pages}
+                className="rounded-lg border border-line-strong bg-surface p-2 text-ink-soft hover:bg-sunken disabled:opacity-40" aria-label="Next page">
                 <HiOutlineChevronRight className="w-5 h-5" />
               </button>
-            </div>
+            </nav>
           )}
         </>
       )}

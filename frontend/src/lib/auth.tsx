@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 import api from './api';
 
 interface User {
@@ -16,6 +16,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   register: (data: { display_name: string; email: string; password: string; native_dialect?: string }) => Promise<void>;
   logout: () => void;
+  refreshUser: () => Promise<void>;
   loading: boolean;
 }
 
@@ -54,6 +55,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setToken(access_token);
   };
 
+  const refreshUser = async () => {
+    const res = await api.get('/auth/me');
+    setUser(res.data);
+  };
+
   const logout = () => {
     localStorage.removeItem('token');
     setToken(null);
@@ -61,7 +67,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, login, register, logout, loading }}>
+    <AuthContext.Provider value={{ user, token, login, register, logout, refreshUser, loading }}>
       {children}
     </AuthContext.Provider>
   );
@@ -73,15 +79,13 @@ export function useAuth() {
   return ctx;
 }
 
+/** Sends signed-out visitors to the login page, then back here afterwards. */
 export function ProtectedRoute({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    if (!loading && !user) navigate('/login');
-  }, [user, loading, navigate]);
-
-  if (loading) return <div className="flex justify-center p-12"><div className="animate-spin h-8 w-8 border-4 border-amber-500 border-t-transparent rounded-full" /></div>;
-  if (!user) return null;
+  const location = useLocation();
+  if (loading) {
+    return <div className="flex justify-center py-24"><span className="h-8 w-8 animate-spin rounded-full border-[3px] border-saffron-500 border-t-transparent" /></div>;
+  }
+  if (!user) return <Navigate to="/login" replace state={{ from: location.pathname + location.search }} />;
   return <>{children}</>;
 }

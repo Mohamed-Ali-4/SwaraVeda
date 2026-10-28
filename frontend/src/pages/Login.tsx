@@ -1,11 +1,18 @@
 import { useState, type FormEvent } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
 import { errorMessage } from '../lib/api';
+import { input } from '../lib/styles';
+import { useToast } from '../lib/toast';
+import { AuthShell, PasswordInput } from '../components/AuthShell';
+import { Alert, Button, Field } from '../components/ui';
 
 export default function Login() {
   const { login } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const toast = useToast();
+  const from = (location.state as { from?: string } | null)?.from || '/';
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -16,65 +23,56 @@ export default function Login() {
     setError('');
     setLoading(true);
     try {
-      await login(email, password);
-      navigate('/');
-    } catch (err: any) {
-      setError(errorMessage(err, 'Login failed'));
+      await login(email.trim(), password);
+      toast.success('Signed in. Welcome back!');
+      navigate(from, { replace: true });
+    } catch (err) {
+      setError(errorMessage(err, 'Sign-in failed'));
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-[60vh] flex items-center justify-center">
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-sm border border-stone-200 p-8">
-        <div className="text-center mb-8">
-          <span className="text-4xl">🪷</span>
-          <h1 className="text-2xl font-bold text-stone-800 mt-2">Welcome back</h1>
-          <p className="text-stone-500 mt-1">Sign in to SwaraVeda</p>
-        </div>
-
-        {error && (
-          <div className="bg-red-50 text-red-600 px-4 py-3 rounded-lg mb-4 text-sm">{error}</div>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-stone-700 mb-1">Email</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              className="w-full px-4 py-2.5 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
-              placeholder="you@example.com"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-stone-700 mb-1">Password</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              className="w-full px-4 py-2.5 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
-              placeholder="Your password"
-            />
-          </div>
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full py-2.5 bg-amber-600 text-white rounded-lg hover:bg-amber-700 disabled:opacity-50 font-medium transition-colors cursor-pointer"
-          >
-            {loading ? 'Signing in...' : 'Sign In'}
-          </button>
-        </form>
-
-        <p className="text-center text-sm text-stone-500 mt-6">
-          Don't have an account?{' '}
-          <Link to="/register" className="text-amber-600 hover:text-amber-700 font-medium">Sign up</Link>
-        </p>
-      </div>
-    </div>
+    <AuthShell
+      title="Welcome back"
+      subtitle={from !== '/' ? 'Sign in to continue where you left off.' : 'Sign in to record, correct and verify.'}
+    >
+      <form onSubmit={handleSubmit} className="space-y-5" noValidate={false}>
+        {error && <Alert>{error}</Alert>}
+        <Field label="Email" htmlFor="login-email">
+          <input
+            id="login-email"
+            type="email"
+            autoComplete="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+            autoFocus
+            className={input}
+            placeholder="you@example.com"
+          />
+        </Field>
+        <Field label="Password" htmlFor="login-password">
+          <PasswordInput
+            id="login-password"
+            autoComplete="current-password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+            placeholder="Your password"
+          />
+        </Field>
+        <Button type="submit" loading={loading} size="lg" className="w-full">
+          {loading ? 'Signing in…' : 'Sign in'}
+        </Button>
+      </form>
+      <p className="mt-8 text-center text-[15px] text-muted">
+        New to SwaraVeda?{' '}
+        <Link to="/register" state={location.state} className="font-medium text-saffron-600 hover:text-saffron-700">
+          Create an account
+        </Link>
+      </p>
+    </AuthShell>
   );
 }

@@ -1,270 +1,444 @@
-import { useState, useRef, useEffect, type FormEvent } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { HiOutlineMicrophone, HiOutlineStop, HiOutlineUpload } from 'react-icons/hi';
+import { useEffect, useRef, useState, type DragEvent, type FormEvent, type ReactNode } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import axios from 'axios';
+import {
+  HiOutlineMicrophone, HiOutlineUpload, HiOutlineStop, HiOutlineTrash, HiOutlineCheck,
+  HiOutlineArrowLeft, HiOutlineArrowRight, HiOutlineSparkles, HiOutlineGlobe, HiOutlineChip,
+} from 'react-icons/hi';
 import api, { errorMessage } from '../lib/api';
+import { useDialects } from '../lib/dialects';
+import { capitalize, clock } from '../lib/format';
+import { input } from '../lib/styles';
+import { useToast } from '../lib/toast';
+import { genres } from '../lib/types';
+import { Alert, Button, Card, Field, PageHeader } from '../components/ui';
 
-interface Dialect {
-  id: string;
+const MAX_MB = 200;
+const ageGroups = ['child', 'young adult', 'adult', 'elder'];
+
+interface Source {
+  blob: Blob;
   name: string;
+  type: string;
+  url: string;
+  seconds: number | null;
+  recorded: boolean;
+}
+
+function pickMime(): string {
+  const options = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/ogg;codecs=opus'];
+  return options.find((t) => typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported(t)) ?? '';
+}
+
+const extensionFor = (mime: string) => (mime.includes('mp4') ? 'm4a' : mime.includes('ogg') ? 'ogg' : 'webm');
+
+function mb(bytes: number) {
+  return `${(bytes / 1024 / 1024).toFixed(bytes > 10 * 1024 * 1024 ? 0 : 1)} MB`;
+}
+
+/** Microphone recording with a live input level. */
+function useRecorder(onDone: (s: Source) => void, onError: (m: string) => void) {
+  const [active, setActive] = useState(false);
+  const [seconds, setSeconds] = useState(0);
+  const [level, setLevel] = useState(0);
+  const cleanup = useRef<() => void>(() => {});
+
+  const start = async () => {
+    let stream: MediaStream;
+    try {
+      // Keep the voice natural: no echo cancellation or noise suppression.
+      // Rumble and loudness are handled on the server before transcription.
+      stream = await navigator.mediaDevices.getUserMedia({
+        audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: true },
+      });
+    } catch {
+      onError('Microphone access was blocked. Allow it in your browser’s address bar, or upload a file instead.');
+      return;
+    }
+    const mime = pickMime();
+    const recorder = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
+    const chunks: Blob[] = [];
+    const startedAt = Date.now();
+    recorder.ondataavailable = (e) => e.data.size && chunks.push(e.data);
+    recorder.onstop = () => {
+      const type = recorder.mimeType || mime || 'audio/webm';
+      const blob = new Blob(chunks, { type });
+      onDone({
+        blob, type, url: URL.createObjectURL(blob), recorded: true,
+        name: `recording-${new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-')}.${extensionFor(type)}`,
+        seconds: Math.round((Date.now() - startedAt) / 1000),
+      });
+    };
+
+    const ctx = new AudioContext();
+    const analyser = ctx.createAnalyser();
+    analyser.fftSize = 1024;
+    ctx.createMediaStreamSource(stream).connect(analyser);
+    const data = new Float32Array(analyser.fftSize);
+    let frame = 0;
+    const tick = () => {
+      analyser.getFloatTimeDomainData(data);
+      let sum = 0;
+      for (const v of data) sum += v * v;
+      setLevel(Math.min(1, Math.sqrt(sum / data.length) * 4));
+      frame = requestAnimationFrame(tick);
+    };
+    tick();
+    const timer = window.setInterval(() => setSeconds(Math.round((Date.now() - startedAt) / 1000)), 250);
+
+    cleanup.current = () => {
+      if (recorder.state !== 'inactive') recorder.stop();
+      cancelAnimationFrame(frame);
+      clearInterval(timer);
+      stream.getTracks().forEach((t) => t.stop());
+      ctx.close();
+      setLevel(0);
+    };
+    recorder.start(1000);
+    setSeconds(0);
+    setActive(true);
+  };
+
+  const stop = () => {
+    cleanup.current();
+    cleanup.current = () => {};
+    setActive(false);
+  };
+
+  useEffect(() => () => cleanup.current(), []);
+  return { active, seconds, level, start, stop };
+}
+
+function LevelMeter({ level }: { level: number }) {
+  return (
+    <div className="flex h-12 items-end justify-center gap-1" aria-hidden="true">
+      {Array.from({ length: 24 }, (_, i) => {
+        const distance = Math.abs(i - 11.5) / 12;
+        const h = Math.max(0.08, level * (1 - distance * 0.7) * (0.75 + ((i * 7) % 5) / 10));
+        return <span key={i} className="w-1.5 rounded-full bg-danger-600/80 transition-[height] duration-75" style={{ height: `${Math.min(100, h * 100)}%` }} />;
+      })}
+    </div>
+  );
+}
+
+function Stepper({ step }: { step: number }) {
+  const names = ['Audio', 'About the recording', 'Consent & upload'];
+  return (
+    <ol className="mb-8 grid grid-cols-3 gap-2" aria-label="Progress">
+      {names.map((name, i) => (
+        <li key={name} className="flex flex-col gap-2" aria-current={i === step ? 'step' : undefined}>
+          <span className={`h-1.5 rounded-full ${i <= step ? 'bg-saffron-500' : 'bg-line'}`} />
+          <span className={`text-sm ${i === step ? 'font-semibold text-ink' : i < step ? 'text-saffron-700' : 'text-faint'}`}>
+            <span className="hidden sm:inline">{i + 1}. </span>{name}
+          </span>
+        </li>
+      ))}
+    </ol>
+  );
+}
+
+function ConsentOption({ checked, onChange, icon, title, children }: {
+  checked: boolean; onChange: (v: boolean) => void; icon: ReactNode; title: string; children: ReactNode;
+}) {
+  return (
+    <label className={`flex cursor-pointer gap-4 rounded-xl border p-4 transition ${
+      checked ? 'border-saffron-500 bg-saffron-50' : 'border-line-strong bg-surface hover:border-saffron-300'
+    }`}>
+      <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} className="mt-1 h-5 w-5 shrink-0 accent-saffron-600" />
+      <span>
+        <span className="flex items-center gap-2 font-semibold text-ink">{icon}{title}</span>
+        <span className="mt-1 block text-sm text-muted">{children}</span>
+      </span>
+    </label>
+  );
 }
 
 export default function NewRecording() {
   const navigate = useNavigate();
-  const [dialects, setDialects] = useState<Dialect[]>([]);
-  const [title, setTitle] = useState('');
-  const [dialectId, setDialectId] = useState('');
-  const [genre, setGenre] = useState('');
-  const [speakerName, setSpeakerName] = useState('');
-  const [notes, setNotes] = useState('');
+  const toast = useToast();
+  const { dialects } = useDialects();
+  const [step, setStep] = useState(0);
+  const [source, setSource] = useState<Source | null>(null);
+  const [dragging, setDragging] = useState(false);
   const [error, setError] = useState('');
-  const [submitting, setSubmitting] = useState(false);
+  const [form, setForm] = useState({
+    title: '', dialect_id: '', genre: '', speaker_name: '', speaker_age_group: '',
+    recorded_place: '', recorded_at: '', notes: '',
+  });
+  const [consentPublic, setConsentPublic] = useState(false);
+  const [consentAi, setConsentAi] = useState(false);
+  const [autoTranscribe, setAutoTranscribe] = useState(true);
+  const [progress, setProgress] = useState<number | null>(null);
+  const [stage, setStage] = useState('');
+  const fileInput = useRef<HTMLInputElement>(null);
 
-  // Recording state
-  const [recording, setRecording] = useState(false);
-  const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
-  const [audioUrl, setAudioUrl] = useState<string | null>(null);
-  const [duration, setDuration] = useState(0);
-  const mediaRecorder = useRef<MediaRecorder | null>(null);
-  const chunks = useRef<Blob[]>([]);
-  const timerRef = useRef<number | null>(null);
+  const recorder = useRecorder(
+    (s) => { setSource(s); setError(''); },
+    (m) => setError(m),
+  );
 
-  useEffect(() => {
-    api.get('/dialects').then((res) => setDialects(res.data));
-  }, []);
+  useEffect(() => () => { if (source) URL.revokeObjectURL(source.url); }, [source]);
 
-  const startRecording = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const recorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
-      chunks.current = [];
-
-      recorder.ondataavailable = (e) => {
-        if (e.data.size > 0) chunks.current.push(e.data);
-      };
-
-      recorder.onstop = () => {
-        const blob = new Blob(chunks.current, { type: 'audio/webm' });
-        setAudioBlob(blob);
-        setAudioUrl(URL.createObjectURL(blob));
-        stream.getTracks().forEach((t) => t.stop());
-      };
-
-      recorder.start();
-      mediaRecorder.current = recorder;
-      setRecording(true);
-      setDuration(0);
-      timerRef.current = window.setInterval(() => setDuration((d) => d + 1), 1000);
-    } catch {
-      setError('Could not access microphone. Please allow microphone access.');
+  const chooseFile = (file?: File) => {
+    if (!file) return;
+    if (!file.type.startsWith('audio/') && !file.type.startsWith('video/')) {
+      setError('That file isn’t audio or video. Try an MP3, M4A, WAV, OGG, WebM or a phone video.');
+      return;
     }
-  };
-
-  const stopRecording = () => {
-    mediaRecorder.current?.stop();
-    setRecording(false);
-    if (timerRef.current) clearInterval(timerRef.current);
-  };
-
-  const clearRecording = () => {
-    setAudioBlob(null);
-    if (audioUrl) URL.revokeObjectURL(audioUrl);
-    setAudioUrl(null);
-    setDuration(0);
-  };
-
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
-    if (!audioBlob) {
-      setError('Please record or upload audio first');
+    if (file.size > MAX_MB * 1024 * 1024) {
+      setError(`That file is ${mb(file.size)}. Files up to ${MAX_MB} MB work; split longer sessions into parts.`);
       return;
     }
     setError('');
-    setSubmitting(true);
+    const url = URL.createObjectURL(file);
+    const s: Source = { blob: file, name: file.name, type: file.type, url, seconds: null, recorded: false };
+    setSource(s);
+    if (!form.title) setForm((f) => ({ ...f, title: file.name.replace(/\.[^.]+$/, '').replace(/[-_]+/g, ' ') }));
+    const probe = new Audio(url);
+    probe.onloadedmetadata = () => {
+      if (Number.isFinite(probe.duration)) setSource((cur) => (cur?.url === url ? { ...cur, seconds: Math.round(probe.duration) } : cur));
+    };
+  };
 
+  const onDrop = (e: DragEvent) => {
+    e.preventDefault();
+    setDragging(false);
+    chooseFile(e.dataTransfer.files?.[0]);
+  };
+
+  const next = (e?: FormEvent) => {
+    e?.preventDefault();
+    setError('');
+    if (step === 0 && !source) return setError('Record or choose an audio file first.');
+    if (step === 1 && !form.title.trim()) return setError('Give the recording a title.');
+    setStep((s) => s + 1);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const upload = async () => {
+    if (!source) return;
+    setError('');
+    setProgress(0);
     try {
-      const uploadRes = await api.post('/recordings/upload-url', {
-        filename: `recording-${Date.now()}.webm`,
-        content_type: 'audio/webm',
+      setStage('Preparing upload…');
+      const { data } = await api.post('/recordings/upload-url', { filename: source.name, content_type: source.type });
+      setStage('Uploading audio…');
+      await axios.put(data.upload_url, source.blob, {
+        headers: { 'Content-Type': source.type || 'application/octet-stream', 'x-upsert': 'true' },
+        onUploadProgress: (ev) => setProgress(ev.total ? ev.loaded / ev.total : null),
       });
-      const { upload_url, storage_path, token } = uploadRes.data;
-
-      const headers: Record<string, string> = { 'Content-Type': 'audio/webm' };
-      if (token) headers['x-upsert'] = 'true';
-
-      await fetch(upload_url, {
-        method: 'PUT',
-        body: audioBlob,
-        headers,
-      });
-
-      await api.post('/recordings', {
-        title,
-        storage_path,
-        duration_seconds: duration,
-        dialect_id: dialectId || undefined,
-        genre: genre || undefined,
-        speaker_name: speakerName || undefined,
-        notes: notes || undefined,
-        consent_public: true,
-        consent_ai_training: true,
-      });
-
-      navigate('/recordings');
-    } catch (err: any) {
+      setStage('Saving details…');
+      const body = Object.fromEntries(Object.entries(form).filter(([, v]) => v.trim()));
+      const rec = (await api.post('/recordings', {
+        ...body,
+        storage_path: data.storage_path,
+        duration_seconds: source.seconds ?? undefined,
+        consent_public: consentPublic,
+        consent_ai_training: consentAi,
+      })).data;
+      if (autoTranscribe) {
+        await api.post(`/recordings/${rec.id}/transcribe`).catch(() =>
+          toast.error('Saved, but transcription didn’t start. Use “Transcribe” on the recording page.'));
+      }
+      toast.success(autoTranscribe ? 'Uploaded. Transcription has started.' : 'Recording uploaded.');
+      navigate(`/recordings/${rec.id}`);
+    } catch (err) {
       setError(errorMessage(err, 'Upload failed'));
-    } finally {
-      setSubmitting(false);
+      setProgress(null);
     }
   };
 
-  const formatTime = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+  const uploading = progress !== null;
+  const setField = (k: keyof typeof form) => (e: { target: { value: string } }) => setForm({ ...form, [k]: e.target.value });
 
   return (
-    <div className="max-w-2xl mx-auto">
-      <h1 className="text-2xl font-bold text-stone-800 mb-6">New Recording</h1>
+    <div className="mx-auto max-w-2xl">
+      <PageHeader
+        eyebrow="New recording"
+        title="Add a voice to the archive"
+        subtitle="Three short steps. You can edit the details later."
+      />
+      <Stepper step={step} />
+      {error && <div className="mb-5"><Alert>{error}</Alert></div>}
 
-      {error && (
-        <div className="bg-red-50 text-red-600 px-4 py-3 rounded-lg mb-4 text-sm">{error}</div>
+      {step === 0 && (
+        <Card className="p-6 sm:p-8">
+          {!source ? (
+            recorder.active ? (
+              <div className="flex flex-col items-center py-6 text-center">
+                <span className="mb-1 flex items-center gap-2 text-sm font-medium text-danger-600">
+                  <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-danger-600" /> Recording
+                </span>
+                <p className="font-display text-5xl font-bold tabular text-ink">{clock(recorder.seconds * 1000)}</p>
+                <div className="my-6 w-full max-w-xs"><LevelMeter level={recorder.level} /></div>
+                <p className="mb-6 text-sm text-muted">
+                  {recorder.level < 0.04 ? 'We can’t hear much. Move closer to the speaker.' : 'Sounding good.'}
+                </p>
+                <Button variant="danger" size="lg" onClick={recorder.stop} icon={<HiOutlineStop className="w-5 h-5" />}>
+                  Stop recording
+                </Button>
+              </div>
+            ) : (
+              <div className="grid gap-4 sm:grid-cols-2">
+                <button
+                  onClick={recorder.start}
+                  className="group flex flex-col items-center rounded-xl border border-line-strong bg-surface px-6 py-8 text-center transition hover:border-saffron-500 hover:bg-saffron-50"
+                >
+                  <span className="flex h-16 w-16 items-center justify-center rounded-full bg-saffron-600 text-white shadow-lift transition group-hover:scale-105">
+                    <HiOutlineMicrophone className="w-8 h-8" />
+                  </span>
+                  <span className="mt-4 font-semibold text-ink">Record now</span>
+                  <span className="mt-1 text-sm text-muted">Use this device’s microphone</span>
+                </button>
+                <div
+                  onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
+                  onDragLeave={() => setDragging(false)}
+                  onDrop={onDrop}
+                  onClick={() => fileInput.current?.click()}
+                  onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && fileInput.current?.click()}
+                  role="button"
+                  tabIndex={0}
+                  className={`flex flex-col items-center rounded-xl border-2 border-dashed px-6 py-8 text-center transition ${
+                    dragging ? 'border-saffron-500 bg-saffron-50' : 'border-line-strong hover:border-saffron-300'
+                  }`}
+                >
+                  <span className="flex h-16 w-16 items-center justify-center rounded-full bg-sunken text-ink-soft">
+                    <HiOutlineUpload className="w-8 h-8" />
+                  </span>
+                  <span className="mt-4 font-semibold text-ink">Upload a file</span>
+                  <span className="mt-1 text-sm text-muted">Drop it here or click. Audio or phone video, up to {MAX_MB} MB.</span>
+                  <input ref={fileInput} type="file" accept="audio/*,video/*" className="hidden" onChange={(e) => chooseFile(e.target.files?.[0])} />
+                </div>
+              </div>
+            )
+          ) : (
+            <div className="space-y-4">
+              <div className="flex items-center gap-3">
+                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-leaf-50 text-leaf-600"><HiOutlineCheck className="w-5 h-5" /></span>
+                <div className="min-w-0">
+                  <p className="font-semibold text-ink truncate">{source.recorded ? 'Recording ready' : source.name}</p>
+                  <p className="text-sm text-muted tabular">
+                    {source.seconds ? clock(source.seconds * 1000) : 'Length unknown'} · {mb(source.blob.size)}
+                  </p>
+                </div>
+              </div>
+              <audio src={source.url} controls className="w-full" />
+              <Button variant="ghost" size="sm" onClick={() => setSource(null)} icon={<HiOutlineTrash className="w-4 h-4" />}>
+                Use a different recording
+              </Button>
+            </div>
+          )}
+          <div className="mt-8 flex justify-end">
+            <Button onClick={() => next()} disabled={!source} icon={<HiOutlineArrowRight className="w-4 h-4" />} className="flex-row-reverse">
+              Continue
+            </Button>
+          </div>
+        </Card>
       )}
 
-      <div className="bg-white rounded-xl border border-stone-200 p-6 mb-6">
-        <h2 className="font-semibold text-stone-700 mb-4">Audio</h2>
-
-        {!audioBlob ? (
-          <div className="flex flex-col items-center py-8">
-            {recording ? (
-              <>
-                <div className="w-20 h-20 rounded-full bg-red-100 flex items-center justify-center mb-4 animate-pulse">
-                  <HiOutlineMicrophone className="w-10 h-10 text-red-500" />
-                </div>
-                <p className="text-lg font-mono text-stone-700 mb-4">{formatTime(duration)}</p>
-                <button
-                  onClick={stopRecording}
-                  className="flex items-center gap-2 px-6 py-3 bg-red-500 text-white rounded-full hover:bg-red-600 cursor-pointer"
-                >
-                  <HiOutlineStop className="w-5 h-5" />
-                  Stop Recording
-                </button>
-              </>
-            ) : (
-              <>
-                <button
-                  onClick={startRecording}
-                  className="w-20 h-20 rounded-full bg-amber-100 flex items-center justify-center mb-4 hover:bg-amber-200 transition-colors cursor-pointer"
-                >
-                  <HiOutlineMicrophone className="w-10 h-10 text-amber-600" />
-                </button>
-                <p className="text-stone-500">Click to start recording</p>
-                <p className="text-xs text-stone-400 mt-2">or upload a file below</p>
-                <label className="mt-4 flex items-center gap-2 px-4 py-2 border border-stone-300 rounded-lg text-sm text-stone-600 hover:bg-stone-50 cursor-pointer">
-                  <HiOutlineUpload className="w-5 h-5" />
-                  Upload Audio File
-                  <input
-                    type="file"
-                    accept="audio/*"
-                    className="hidden"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) {
-                        setAudioBlob(file);
-                        setAudioUrl(URL.createObjectURL(file));
-                      }
-                    }}
-                  />
-                </label>
-              </>
-            )}
-          </div>
-        ) : (
-          <div className="space-y-3">
-            <audio src={audioUrl!} controls className="w-full" />
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-stone-500">{formatTime(duration)}</span>
-              <button onClick={clearRecording} className="text-sm text-red-500 hover:text-red-600 cursor-pointer">
-                Discard & re-record
-              </button>
+      {step === 1 && (
+        <Card className="p-6 sm:p-8">
+          <form onSubmit={next} className="space-y-5">
+            <Field label="Title" htmlFor="rec-title" hint="What would someone search for? e.g. “Harvest song by Kamala, Mangaluru”.">
+              <input id="rec-title" value={form.title} onChange={setField('title')} required autoFocus className={input} />
+            </Field>
+            <div className="grid gap-5 sm:grid-cols-2">
+              <Field label="Dialect" htmlFor="rec-dialect" hint={<>Missing? <Link to="/dialects" target="_blank" className="text-saffron-600">Add a dialect</Link>, then reload.</>}>
+                <select id="rec-dialect" value={form.dialect_id} onChange={setField('dialect_id')} className={input}>
+                  <option value="">Not sure</option>
+                  {dialects.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
+                </select>
+              </Field>
+              <Field label="Speaker" htmlFor="rec-speaker" hint="Their name, or how they want to be credited.">
+                <input id="rec-speaker" value={form.speaker_name} onChange={setField('speaker_name')} className={input} />
+              </Field>
             </div>
-          </div>
-        )}
-      </div>
+            <fieldset>
+              <legend className="mb-2 text-sm font-medium text-ink-soft">What kind of recording is it?</legend>
+              <div className="flex flex-wrap gap-2">
+                {genres.map((g) => (
+                  <button
+                    type="button" key={g}
+                    onClick={() => setForm({ ...form, genre: form.genre === g ? '' : g })}
+                    aria-pressed={form.genre === g}
+                    className={`rounded-full border px-3.5 py-1.5 text-sm transition ${
+                      form.genre === g ? 'border-saffron-600 bg-saffron-600 text-white' : 'border-line-strong bg-surface text-ink-soft hover:border-saffron-300'
+                    }`}
+                  >
+                    {capitalize(g)}
+                  </button>
+                ))}
+              </div>
+            </fieldset>
+            <div className="grid gap-5 sm:grid-cols-3">
+              <Field label="Speaker’s age" htmlFor="rec-age">
+                <select id="rec-age" value={form.speaker_age_group} onChange={setField('speaker_age_group')} className={input}>
+                  <option value="">Not given</option>
+                  {ageGroups.map((a) => <option key={a} value={a}>{capitalize(a)}</option>)}
+                </select>
+              </Field>
+              <Field label="Where" htmlFor="rec-place">
+                <input id="rec-place" value={form.recorded_place} onChange={setField('recorded_place')} className={input} placeholder="Village, town" />
+              </Field>
+              <Field label="When" htmlFor="rec-date">
+                <input id="rec-date" type="date" value={form.recorded_at} onChange={setField('recorded_at')} className={input} max={new Date().toISOString().slice(0, 10)} />
+              </Field>
+            </div>
+            <Field label="Notes" htmlFor="rec-notes" hint="Context that helps listeners: the occasion, the story behind the song.">
+              <textarea id="rec-notes" rows={3} value={form.notes} onChange={setField('notes')} className={`${input} resize-y`} />
+            </Field>
+            <div className="flex justify-between pt-2">
+              <Button type="button" variant="ghost" onClick={() => setStep(0)} icon={<HiOutlineArrowLeft className="w-4 h-4" />}>Back</Button>
+              <Button type="submit" icon={<HiOutlineArrowRight className="w-4 h-4" />} className="flex-row-reverse">Continue</Button>
+            </div>
+          </form>
+        </Card>
+      )}
 
-      <form onSubmit={handleSubmit} className="bg-white rounded-xl border border-stone-200 p-6 space-y-4">
-        <h2 className="font-semibold text-stone-700">Details</h2>
-
-        <div>
-          <label className="block text-sm font-medium text-stone-700 mb-1">Title *</label>
-          <input
-            type="text"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            required
-            className="w-full px-4 py-2.5 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
-            placeholder="e.g., Grandmother's lullaby in Tulu"
-          />
-        </div>
-
-        <div className="grid sm:grid-cols-2 gap-4">
+      {step === 2 && (
+        <Card className="p-6 sm:p-8 space-y-6">
           <div>
-            <label className="block text-sm font-medium text-stone-700 mb-1">Dialect</label>
-            <select
-              value={dialectId}
-              onChange={(e) => setDialectId(e.target.value)}
-              className="w-full px-4 py-2.5 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
-            >
-              <option value="">Select dialect</option>
-              {dialects.map((d) => (
-                <option key={d.id} value={d.id}>{d.name}</option>
-              ))}
-            </select>
+            <h2 className="text-xl font-semibold text-ink">Ask the speaker</h2>
+            <p className="mt-1 text-[15px] text-muted">
+              Tick only what they agreed to. These are separate choices, and you can change them later on the recording page.
+            </p>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-stone-700 mb-1">Genre</label>
-            <select
-              value={genre}
-              onChange={(e) => setGenre(e.target.value)}
-              className="w-full px-4 py-2.5 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
-            >
-              <option value="">Select genre</option>
-              <option value="conversation">Conversation</option>
-              <option value="narrative">Narrative</option>
-              <option value="song">Song</option>
-              <option value="prayer">Prayer</option>
-              <option value="proverb">Proverb</option>
-              <option value="other">Other</option>
-            </select>
+          <div className="space-y-3">
+            <ConsentOption checked={consentPublic} onChange={setConsentPublic} icon={<HiOutlineGlobe className="w-5 h-5 text-saffron-600" />} title="Anyone may listen">
+              The recording and its transcript are public in the archive and appear in search.
+              If unticked, only you, verifiers and admins can see it.
+            </ConsentOption>
+            <ConsentOption checked={consentAi} onChange={setConsentAi} icon={<HiOutlineChip className="w-5 h-5 text-lotus-500" />} title="May help train speech AI">
+              Corrected transcripts may be included in datasets that teach speech recognition to understand this dialect.
+            </ConsentOption>
           </div>
-        </div>
+          <label className="flex items-center gap-3 rounded-xl bg-lotus-50 p-4 text-[15px] text-ink cursor-pointer">
+            <input type="checkbox" checked={autoTranscribe} onChange={(e) => setAutoTranscribe(e.target.checked)} className="h-5 w-5 accent-lotus-600" />
+            <HiOutlineSparkles className="w-5 h-5 text-lotus-500 shrink-0" />
+            Start AI transcription straight after uploading
+          </label>
+          <p className="text-sm text-muted">Shared under CC BY-NC 4.0: others may reuse it non-commercially with credit.</p>
 
-        <div>
-          <label className="block text-sm font-medium text-stone-700 mb-1">Speaker Name</label>
-          <input
-            type="text"
-            value={speakerName}
-            onChange={(e) => setSpeakerName(e.target.value)}
-            className="w-full px-4 py-2.5 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
-            placeholder="Name of the person speaking"
-          />
-        </div>
+          {uploading && (
+            <div aria-live="polite">
+              <div className="mb-1.5 flex justify-between text-sm text-ink-soft">
+                <span>{stage}</span>
+                {progress !== null && <span className="tabular">{Math.round(progress * 100)}%</span>}
+              </div>
+              <div className="h-2 overflow-hidden rounded-full bg-sunken">
+                <div className="h-full rounded-full bg-saffron-500 transition-all" style={{ width: `${Math.max(3, (progress ?? 0) * 100)}%` }} />
+              </div>
+            </div>
+          )}
 
-        <div>
-          <label className="block text-sm font-medium text-stone-700 mb-1">Notes</label>
-          <textarea
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            rows={3}
-            className="w-full px-4 py-2.5 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent resize-none"
-            placeholder="Context, location, or any additional details"
-          />
-        </div>
-
-        <button
-          type="submit"
-          disabled={submitting || !audioBlob}
-          className="w-full py-2.5 bg-amber-600 text-white rounded-lg hover:bg-amber-700 disabled:opacity-50 font-medium transition-colors cursor-pointer"
-        >
-          {submitting ? 'Uploading...' : 'Upload Recording'}
-        </button>
-      </form>
+          <div className="flex justify-between">
+            <Button variant="ghost" onClick={() => setStep(1)} disabled={uploading} icon={<HiOutlineArrowLeft className="w-4 h-4" />}>Back</Button>
+            <Button size="lg" onClick={upload} loading={uploading} icon={<HiOutlineUpload className="w-5 h-5" />}>
+              {uploading ? 'Uploading…' : 'Upload recording'}
+            </Button>
+          </div>
+        </Card>
+      )}
     </div>
   );
 }

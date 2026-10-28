@@ -1,1 +1,87 @@
 @import "tailwindcss";
+
+/* SwaraVeda design tokens.
+   Warm "paper and palm-leaf manuscript" neutrals; saffron is the brand and
+   primary action colour; lotus marks AI features; leaf marks verified work.
+   Layout: one content column up to 72rem; the recording page is
+   transcript-first with a sticky player. */
+@theme {
+  --color-paper: #f8f5ef;
+  --color-surface: #ffffff;
+  --color-sunken: #f2ede4;
+  --color-ink: #231c15;
+  --color-ink-soft: #4a3f33;
+  --color-muted: #776a5b;
+  --color-faint: #a69887;
+  --color-line: #e7dfd2;
+  --color-line-strong: #d4c7b4;
+
+  --color-saffron-50: #fdf4e6;
+  --color-saffron-100: #fae3bf;
+  --color-saffron-300: #f0b45a;
+  --color-saffron-500: #d97706;
+  --color-saffron-600: #b45309;
+  --color-saffron-700: #92400e;
+  --color-saffron-900: #4a2306;
+
+  --color-lotus-50: #fcf0f5;
+  --color-lotus-100: #f7d9e6;
+  --color-lotus-500: #c2477f;
+  --color-lotus-600: #a3326a;
+
+  --color-leaf-50: #eaf5ee;
+  --color-leaf-100: #cfe8d8;
+  --color-leaf-600: #2f7a4a;
+  --color-leaf-700: #225c37;
+
+  --color-river-50: #ebf2fb;
+  --color-river-100: #d3e2f5;
+  --color-river-500: #3b6fb6;
+  --color-river-600: #2c5a99;
+
+  --color-danger-50: #fdeeee;
+  --color-danger-600: #b42318;
+
+  --font-display: "Anek Latin", "Hind", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Hind", "Noto Sans Kannada", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-script: "Noto Sans Kannada", "Hind", ui-sans-serif, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+
+  --radius-card: 14px;
+  --shadow-card: 0 1px 2px rgb(35 28 21 / 0.04), 0 6px 20px -12px rgb(35 28 21 / 0.12);
+  --shadow-lift: 0 2px 4px rgb(35 28 21 / 0.05), 0 16px 40px -16px rgb(35 28 21 / 0.22);
+
+  --animate-toast-in: toast-in 180ms ease-out;
+  --animate-fade-up: fade-up 220ms ease-out;
+  @keyframes toast-in {
+    from { opacity: 0; transform: translateY(8px) scale(0.98); }
+    to { opacity: 1; transform: none; }
+  }
+  @keyframes fade-up {
+    from { opacity: 0.4; transform: translateY(4px); }
+    to { opacity: 1; transform: none; }
+  }
+}
+
+@layer base {
+  html { color-scheme: light; }
+  body {
+    background: var(--color-paper);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-size: 16px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; line-height: 1.15; }
+  ::selection { background: var(--color-saffron-100); }
+  :focus-visible { outline: 2px solid var(--color-saffron-500); outline-offset: 2px; border-radius: 6px; }
+  button, [role="button"], summary { cursor: pointer; }
+  button:disabled { cursor: not-allowed; }
+  .tabular { font-variant-numeric: tabular-nums; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}
