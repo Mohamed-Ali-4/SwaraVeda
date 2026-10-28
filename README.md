@@ -12,11 +12,14 @@ big AI systems ignore.
 
 | | |
 |---|---|
-| **Record or upload** | Record in the browser or upload a file; audio goes straight to storage. Two separate consents per recording: public listening, and AI training. |
+| **Record or upload** | Three-step wizard: record in the browser with a live level meter, or drop in any audio or phone video (up to 200 MB); add details; ask the speaker for two separate consents (public listening, AI training). Upload progress, then transcription starts automatically. |
+| **Audio pre-processing** | ffmpeg converts every upload to 16 kHz mono, filters rumble below 80 Hz and normalises loudness before transcription, without trimming, so timestamps match the original. An hour compresses to ~15 MB. |
 | **AI transcription** | Whisper large-v3 drafts a timestamped transcript. Each dialect can name the language to transcribe with (e.g. Tulu → Kannada), since most dialects have no model of their own. Live progress in the UI. |
-| **Correction and verification** | Contributors correct each segment; the machine draft is kept beside the correction. Verifiers sign off segments. |
+| **Listening editor** | Waveform player with the passages marked on it; the transcript follows playback. Correct a passage while it loops, at 0.75× if needed; Ctrl+Enter saves and jumps to the next one. Keyboard: Space, J/K, E. The machine draft is kept beside every correction. |
+| **Review queue** | Every passage waiting for a person, by state (needs correcting / ready to verify / verified) and dialect, playable in place. Verifiers approve with one click. |
 | **AI translation** | One click suggests an English translation and Latin transliteration for the contributor to review. |
-| **Search** | Keyword search, and semantic search that finds passages by meaning across languages. |
+| **Search with playback** | Exact-word search with highlighted matches, and search by meaning across languages. Every result plays just that passage, and opens the recording at that moment. |
+| **Privacy** | Recordings without public-listening consent are visible only to their uploader, verifiers and admins, and never appear in search. |
 | **Dataset export** | JSONL/CSV of (machine draft, human correction, audio, timestamps), consented recordings only, ready for fine-tuning. |
 | **Dialect catalogue** | Region, script, ISO code, UNESCO endangerment status. |
 | **Roles** | Contributor, verifier, admin; admins manage roles in the app. |
@@ -82,7 +85,8 @@ changes itself at startup.
   (the frontend URL, no trailing slash) and `ADMIN_EMAILS`.
 - **Frontend:** Vercel → import repo, root directory `frontend`, env
   `VITE_API_URL` = the API URL.
-- **AI features** (free keys, set on Render):
+- **AI features** (free keys, set on Render; `GROQ_BASE_URL` can point at any
+  OpenAI-compatible Whisper server instead of Groq):
   - `GROQ_API_KEY` from [console.groq.com/keys](https://console.groq.com/keys): transcription and translation
   - `HF_TOKEN` from [huggingface.co/settings/tokens](https://huggingface.co/settings/tokens) (read): semantic search
 

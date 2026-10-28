@@ -11,9 +11,6 @@ from app.config import settings
 
 logger = logging.getLogger(__name__)
 
-GROQ_BASE = "https://api.groq.com/openai/v1"
-
-
 class NLPError(RuntimeError):
     pass
 
@@ -56,7 +53,7 @@ def transcribe_audio(audio: bytes, filename: str, language: str | None = None) -
     if language:
         data["language"] = language
     resp = httpx.post(
-        f"{GROQ_BASE}/audio/transcriptions",
+        f"{settings.GROQ_BASE_URL.rstrip('/')}/audio/transcriptions",
         headers=_groq_headers(),
         data=data,
         files={"file": (filename, audio)},
@@ -131,7 +128,7 @@ def translate_text(text: str, dialect: str | None = None, script: str | None = N
         script=f" written in {script} script" if script else "",
     )
     resp = httpx.post(
-        f"{GROQ_BASE}/chat/completions",
+        f"{settings.GROQ_BASE_URL.rstrip('/')}/chat/completions",
         headers=_groq_headers(),
         json={
             "model": settings.GROQ_LLM_MODEL,

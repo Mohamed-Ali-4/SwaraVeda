@@ -107,6 +107,4 @@ alter table tags enable row level security;
 alter table recording_tags enable row level security;
 alter table jobs enable row level security;
 
-insert into dialects (name, iso_code, region, script, endangerment_status)
-select 'Sample Dialect', 'xxx', 'Karnataka', 'kannada', 'definitely endangered'
-where not exists (select 1 from dialects where name = 'Sample Dialect');
+-- Dialects are added in the app (Dialects → Add a dialect).

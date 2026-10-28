@@ -19,6 +19,8 @@ class Settings(BaseSettings):
     # Hosted NLP. With GROQ_API_KEY set, the API transcribes and translates
     # itself; without it, transcription jobs wait for the local ML worker.
     GROQ_API_KEY: str = ""
+    # Any OpenAI-compatible endpoint works, e.g. a self-hosted Whisper server.
+    GROQ_BASE_URL: str = "https://api.groq.com/openai/v1"
     GROQ_ASR_MODEL: str = "whisper-large-v3"
     GROQ_LLM_MODEL: str = "llama-3.3-70b-versatile"
     # Embeddings for semantic search come from Hugging Face Inference.

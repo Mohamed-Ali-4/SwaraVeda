@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlmodel import Session, select, func
 
 from app.db import get_session
-from app.models import Dialect, Contributor
+from app.models import Dialect, Contributor, Recording
 from app.schemas import DialectIn, DialectOut, DialectPatch
 from app.auth import current_user, require_verifier
 
@@ -75,5 +75,10 @@ def delete_dialect(
     d = session.get(Dialect, dialect_id)
     if not d:
         raise HTTPException(404, "Dialect not found")
+    in_use = session.exec(
+        select(func.count()).select_from(Recording).where(Recording.dialect_id == dialect_id)
+    ).one()
+    if in_use:
+        raise HTTPException(409, f"{in_use} recording{'s' if in_use != 1 else ''} use this dialect; change them first")
     session.delete(d)
     session.commit()

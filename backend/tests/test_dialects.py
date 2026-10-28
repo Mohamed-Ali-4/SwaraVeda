@@ -56,3 +56,16 @@ def test_delete_dialect_non_admin(client, auth_headers):
 def test_create_dialect_unauthenticated(client):
     resp = client.post("/dialects", json={"name": "Test"})
     assert resp.status_code == 401
+
+
+def test_delete_dialect_in_use_is_refused(client, admin_headers):
+    d = client.post("/dialects", headers=admin_headers, json={"name": "Used"}).json()
+    client.post("/recordings", headers=admin_headers, json={"title": "r", "dialect_id": d["id"]})
+    resp = client.delete(f"/dialects/{d['id']}", headers=admin_headers)
+    assert resp.status_code == 409
+    assert "1 recording use" in resp.json()["detail"]
+
+
+def test_admin_deletes_unused_dialect(client, admin_headers):
+    d = client.post("/dialects", headers=admin_headers, json={"name": "Unused"}).json()
+    assert client.delete(f"/dialects/{d['id']}", headers=admin_headers).status_code == 204
