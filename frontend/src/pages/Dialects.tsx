@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
-import { HiOutlineGlobeAlt, HiOutlinePlus, HiOutlineArrowRight } from 'react-icons/hi';
+import { HiOutlineGlobeAlt, HiOutlinePlus, HiOutlineArrowRight, HiOutlineSearch } from 'react-icons/hi';
 import api, { errorMessage } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { useDialects } from '../lib/dialects';
@@ -61,6 +61,11 @@ export default function Dialects() {
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  const [query, setQuery] = useState('');
+  const q = query.trim().toLowerCase();
+  const shown = q
+    ? dialects.filter((d) => [d.name, d.region, d.script, d.iso_code].some((v) => v?.toLowerCase().includes(q)))
+    : dialects;
   const isVerifier = user?.role === 'verifier' || user?.role === 'admin';
   const set = (k: keyof typeof form) => (e: { target: { value: string } }) => setForm({ ...form, [k]: e.target.value });
 
@@ -145,13 +150,36 @@ export default function Dialects() {
         </Card>
       )}
 
+      {dialects.length > 8 && (
+        <div className="mb-6 flex flex-wrap items-center gap-3">
+          <div className="relative min-w-60 flex-1 max-w-md">
+            <HiOutlineSearch className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-faint" />
+            <input
+              type="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Find by name, state, script or ISO code"
+              aria-label="Find a dialect"
+              className="w-full rounded-lg border border-line-strong bg-surface py-2 pl-9 pr-3 text-sm focus:border-saffron-500 focus:outline-none"
+            />
+          </div>
+          <p className="text-sm text-muted tabular">{q ? `${shown.length} of ${dialects.length}` : dialects.length} dialects</p>
+        </div>
+      )}
+
+      {dialects.length > 0 && shown.length === 0 && (
+        <p className="rounded-xl bg-sunken px-4 py-6 text-center text-muted">
+          No dialect matches “{query}”.{user && ' Add it with “Add a dialect”.'}
+        </p>
+      )}
+
       {dialects.length === 0 ? (
         <EmptyState icon={<HiOutlineGlobeAlt className="w-7 h-7" />} title="No dialects yet">
           {user ? 'Add the first one: the dialect you speak, or the one you’re recording.' : 'Sign in to add the first dialect.'}
         </EmptyState>
       ) : (
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {dialects.map((d) => (
+          {shown.map((d) => (
             <Card key={d.id} as="article" className="flex flex-col p-6">
               <div className="flex items-start justify-between gap-3">
                 <h3 className="text-xl font-semibold text-ink">{d.name}</h3>
