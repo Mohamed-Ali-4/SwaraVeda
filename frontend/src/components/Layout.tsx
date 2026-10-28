@@ -1,6 +1,6 @@
 import { Link, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
-import { HiOutlineMicrophone, HiOutlineSearch, HiOutlineGlobeAlt, HiOutlineChartBar, HiOutlineUser, HiOutlineLogout, HiOutlineLogin, HiOutlineMenu, HiOutlineX } from 'react-icons/hi';
+import { HiOutlineMicrophone, HiOutlineSearch, HiOutlineGlobeAlt, HiOutlineChartBar, HiOutlineUser, HiOutlineLogout, HiOutlineLogin, HiOutlineMenu, HiOutlineX, HiOutlineCog } from 'react-icons/hi';
 import { useState } from 'react';
 
 export default function Layout() {
@@ -18,6 +18,9 @@ export default function Layout() {
     { to: '/recordings', icon: <HiOutlineMicrophone className="w-5 h-5" />, label: 'Recordings' },
     { to: '/dialects', icon: <HiOutlineGlobeAlt className="w-5 h-5" />, label: 'Dialects' },
     { to: '/search', icon: <HiOutlineSearch className="w-5 h-5" />, label: 'Search' },
+    ...(user?.role === 'verifier' || user?.role === 'admin'
+      ? [{ to: '/manage', icon: <HiOutlineCog className="w-5 h-5" />, label: 'Manage' }]
+      : []),
   ];
 
   return (

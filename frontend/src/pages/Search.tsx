@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { HiOutlineSearch } from 'react-icons/hi';
 import api from '../lib/api';
+import { useNlpStatus } from '../lib/nlp';
 
 interface Hit {
   segment_id: string;
@@ -20,18 +21,23 @@ export default function Search() {
   const [hits, setHits] = useState<Hit[]>([]);
   const [searched, setSearched] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const nlp = useNlpStatus();
 
   const handleSearch = async (e: FormEvent) => {
     e.preventDefault();
     if (!query.trim()) return;
     setLoading(true);
+    setError('');
     try {
       const endpoint = mode === 'semantic' ? '/search/semantic' : '/search';
       const res = await api.get(endpoint, { params: { q: query } });
       setHits(res.data.hits);
       setSearched(true);
-    } catch {
+    } catch (err: any) {
       setHits([]);
+      setSearched(false);
+      setError(err.response?.data?.detail || 'Search failed. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -76,17 +82,23 @@ export default function Search() {
             />
             Keyword Search
           </label>
-          <label className="flex items-center gap-2 text-sm text-stone-600 cursor-pointer">
+          <label
+            className={`flex items-center gap-2 text-sm ${nlp?.semantic_search === false ? 'text-stone-400' : 'text-stone-600 cursor-pointer'}`}
+            title={nlp?.semantic_search === false ? 'Not set up on this server yet' : 'Finds passages with similar meaning, even in other words or languages'}
+          >
             <input
               type="radio"
               checked={mode === 'semantic'}
               onChange={() => setMode('semantic')}
+              disabled={nlp?.semantic_search === false}
               className="accent-amber-600"
             />
-            Semantic Search
+            Semantic Search (by meaning)
           </label>
         </div>
       </form>
+
+      {error && <div className="p-3 mb-6 bg-red-50 text-red-700 rounded-lg text-sm">{error}</div>}
 
       {searched && (
         <div>

@@ -1,8 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { HiOutlineCheckCircle, HiOutlinePencil, HiOutlinePlay } from 'react-icons/hi';
+import { HiOutlineCheckCircle, HiOutlinePencil, HiOutlinePlay, HiOutlineSparkles } from 'react-icons/hi';
 import api from '../lib/api';
 import { useAuth } from '../lib/auth';
+import { useNlpStatus } from '../lib/nlp';
+import RecordingTags from '../components/RecordingTags';
 
 interface Segment {
   id: string;
@@ -30,6 +32,15 @@ interface Recording {
   created_at: string;
 }
 
+interface Job {
+  id: string;
+  status: 'queued' | 'running' | 'completed' | 'failed';
+  progress: number;
+  error?: string;
+}
+
+const isActive = (job: Job | null) => job?.status === 'queued' || job?.status === 'running';
+
 const statusColors: Record<string, string> = {
   uploaded: 'bg-stone-100 text-stone-600',
   transcribing: 'bg-yellow-100 text-yellow-700',
@@ -46,15 +57,29 @@ export default function RecordingDetail() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({ corrected_text: '', transliteration: '', translation_en: '' });
   const [transcribing, setTranscribing] = useState(false);
+  const [job, setJob] = useState<Job | null>(null);
+  const [translatingId, setTranslatingId] = useState<string | null>(null);
+  const nlp = useNlpStatus();
+
+  const load = useCallback(() => {
+    return api.get(`/recordings/${id}`).then((res) => {
+      setRecording(res.data.recording);
+      setSegments(res.data.segments);
+      setJob(res.data.latest_job);
+    });
+  }, [id]);
 
   useEffect(() => {
-    api.get(`/recordings/${id}`)
-      .then((res) => {
-        setRecording(res.data.recording);
-        setSegments(res.data.segments);
-      })
-      .finally(() => setLoading(false));
-  }, [id]);
+    load().finally(() => setLoading(false));
+  }, [load]);
+
+  // Refresh while a transcription job runs, so progress and segments appear.
+  const jobActive = isActive(job);
+  useEffect(() => {
+    if (!jobActive) return;
+    const timer = window.setInterval(load, 3000);
+    return () => window.clearInterval(timer);
+  }, [jobActive, load]);
 
   const startEdit = (seg: Segment) => {
     setEditingId(seg.id);
@@ -75,6 +100,22 @@ export default function RecordingDetail() {
     }
   };
 
+  const suggestTranslation = async (segId: string) => {
+    setTranslatingId(segId);
+    try {
+      const res = await api.post(`/segments/${segId}/translate`, { text: editForm.corrected_text });
+      setEditForm((f) => ({
+        ...f,
+        translation_en: res.data.translation_en || f.translation_en,
+        transliteration: res.data.transliteration || f.transliteration,
+      }));
+    } catch (err: any) {
+      alert(err.response?.data?.detail || 'Translation failed');
+    } finally {
+      setTranslatingId(null);
+    }
+  };
+
   const verifySegment = async (segId: string) => {
     try {
       const res = await api.post(`/segments/${segId}/verify`);
@@ -87,7 +128,8 @@ export default function RecordingDetail() {
   const startTranscription = async () => {
     setTranscribing(true);
     try {
-      await api.post(`/recordings/${id}/transcribe`);
+      const res = await api.post(`/recordings/${id}/transcribe`);
+      setJob(res.data);
       setRecording((r) => r ? { ...r, status: 'transcribing' } : r);
     } catch (err: any) {
       alert(err.response?.data?.detail || 'Transcription failed');
@@ -144,17 +186,43 @@ export default function RecordingDetail() {
           <audio id="main-audio" src={recording.audio_url} controls className="w-full mt-4" />
         )}
 
+        <RecordingTags recordingId={recording.id} canEdit={!!user} />
+
         {recording.notes && (
           <p className="text-sm text-stone-500 mt-4 bg-stone-50 p-3 rounded-lg">{recording.notes}</p>
         )}
 
-        {recording.status === 'uploaded' && user && (
+        {jobActive && job && (
+          <div className="mt-4">
+            <div className="flex justify-between text-sm text-stone-600 mb-1">
+              <span>
+                {job.status === 'queued'
+                  ? nlp?.transcription === false
+                    ? 'Queued: waiting for the ML worker to pick this up'
+                    : 'Queued'
+                  : 'Transcribing...'}
+              </span>
+              <span>{job.progress}%</span>
+            </div>
+            <div className="h-2 bg-stone-100 rounded-full overflow-hidden">
+              <div className="h-full bg-blue-500 transition-all" style={{ width: `${Math.max(job.progress, 3)}%` }} />
+            </div>
+          </div>
+        )}
+
+        {job?.status === 'failed' && (
+          <div className="mt-4 p-3 bg-red-50 text-red-700 rounded-lg text-sm">
+            Transcription failed: {job.error || 'unknown error'}
+          </div>
+        )}
+
+        {user && !jobActive && (recording.status === 'uploaded' || job?.status === 'failed') && (
           <button
             onClick={startTranscription}
             disabled={transcribing}
             className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 text-sm cursor-pointer"
           >
-            {transcribing ? 'Starting...' : 'Start Transcription'}
+            {transcribing ? 'Starting...' : job?.status === 'failed' ? 'Try Again' : 'Start Transcription'}
           </button>
         )}
       </div>
@@ -166,8 +234,8 @@ export default function RecordingDetail() {
 
         {segments.length === 0 ? (
           <div className="bg-white rounded-xl border border-stone-200 p-8 text-center text-stone-500">
-            {recording.status === 'transcribing'
-              ? 'Transcription in progress...'
+            {jobActive
+              ? 'Transcription in progress. Segments will appear here.'
               : 'No segments yet. Start transcription to generate them.'}
           </div>
         ) : (
@@ -248,7 +316,7 @@ export default function RecordingDetail() {
                       />
                     </div>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap gap-2">
                     <button
                       onClick={() => saveEdit(seg.id)}
                       className="px-4 py-1.5 bg-amber-600 text-white rounded-lg text-sm hover:bg-amber-700 cursor-pointer"
@@ -261,6 +329,17 @@ export default function RecordingDetail() {
                     >
                       Cancel
                     </button>
+                    {nlp?.translation && (
+                      <button
+                        onClick={() => suggestTranslation(seg.id)}
+                        disabled={translatingId === seg.id}
+                        className="px-4 py-1.5 border border-purple-200 text-purple-700 rounded-lg text-sm hover:bg-purple-50 disabled:opacity-50 cursor-pointer flex items-center gap-1.5"
+                        title="Fills in translation and transliteration from the corrected text, for you to review"
+                      >
+                        <HiOutlineSparkles className="w-4 h-4" />
+                        {translatingId === seg.id ? 'Translating...' : 'Suggest translation'}
+                      </button>
+                    )}
                   </div>
                 </div>
               ) : (

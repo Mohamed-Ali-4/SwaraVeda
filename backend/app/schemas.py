@@ -201,6 +201,11 @@ class SegmentPatch(BaseModel):
     speaker_label: Optional[str] = None
 
 
+class TranslateIn(BaseModel):
+    # Unsaved text from the editor; defaults to the segment's stored text.
+    text: Optional[str] = None
+
+
 class TranslationOut(BaseModel):
     translation_en: Optional[str] = None
     transliteration: Optional[str] = None

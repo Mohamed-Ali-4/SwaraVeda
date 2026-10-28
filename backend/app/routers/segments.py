@@ -1,13 +1,15 @@
 from datetime import datetime, timezone
 from uuid import UUID
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
+from typing import Optional
+
+from fastapi import APIRouter, BackgroundTasks, Body, Depends, HTTPException
 from sqlmodel import Session, select
 
 from app import nlp
 from app.db import get_session
 from app.models import Segment, Recording, Contributor, Dialect
-from app.schemas import SegmentPatch, SegmentOut, TranslationOut
+from app.schemas import SegmentPatch, SegmentOut, TranslateIn, TranslationOut
 from app.auth import current_user, require_verifier
 from app.pipeline import reembed_segment
 
@@ -49,6 +51,7 @@ def correct_segment(
 @router.post("/{segment_id}/translate", response_model=TranslationOut)
 def translate_segment(
     segment_id: UUID,
+    body: Optional[TranslateIn] = Body(default=None),
     session: Session = Depends(get_session),
     user: Contributor = Depends(current_user),
 ):
@@ -59,7 +62,7 @@ def translate_segment(
     seg = session.get(Segment, segment_id)
     if not seg:
         raise HTTPException(404, "Segment not found")
-    source = seg.corrected_text or seg.asr_text
+    source = (body.text if body else None) or seg.corrected_text or seg.asr_text
     if not (source or "").strip():
         raise HTTPException(400, "This segment has no text to translate")
 

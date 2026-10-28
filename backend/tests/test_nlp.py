@@ -118,6 +118,10 @@ def test_translate_returns_suggestion(client, auth_headers, recording_id, sessio
     assert resp.json()["translation_en"] == "greetings"
     # Translates the corrected text, with the dialect as context.
     assert seen == {"text": "namaskara", "dialect": "Tulu", "script": "kannada"}
+
+    # Unsaved text from the editor takes precedence.
+    client.post(f"/segments/{seg.id}/translate", headers=auth_headers, json={"text": "draft"})
+    assert seen["text"] == "draft"
     # Suggestions aren't saved until the user confirms.
     session.refresh(seg)
     assert seg.translation_en is None
