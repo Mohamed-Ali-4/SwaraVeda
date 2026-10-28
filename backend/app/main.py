@@ -86,4 +86,32 @@ def health_db():
         except Exception as e:
             tables[model.__tablename__] = clean(e)
     ok = all(v == "ok" for v in tables.values())
-    return {"status": "ok" if ok else "error", "tables": tables}
+    return {"status": "ok" if ok else "error", "tables": tables, "schema": _schema_drift()}
+
+
+def _schema_drift() -> dict:
+    """Columns the database has that the code doesn't know about (a NOT NULL
+    one without a default would break inserts), and columns it lacks."""
+    if engine.dialect.name != "postgresql":
+        return {}
+    drift = {}
+    with engine.connect() as conn:
+        rows = conn.execute(text(
+            "select table_name, column_name, data_type, udt_name, is_nullable, column_default "
+            "from information_schema.columns where table_schema = 'public'"
+        )).mappings().all()
+    by_table: dict[str, dict] = {}
+    for r in rows:
+        by_table.setdefault(r["table_name"], {})[r["column_name"]] = r
+    for model in (Contributor, Dialect, Recording, Segment, Tag, Job):
+        db_cols = by_table.get(model.__tablename__, {})
+        code_cols = set(model.__table__.columns.keys())
+        extra = {
+            name: f"{c['udt_name']}{' not null' if c['is_nullable'] == 'NO' else ''}"
+                  f"{' default ' + c['column_default'] if c['column_default'] else ''}"
+            for name, c in db_cols.items() if name not in code_cols
+        }
+        missing = sorted(code_cols - db_cols.keys())
+        if extra or missing:
+            drift[model.__tablename__] = {"extra": extra, "missing": missing}
+    return drift
