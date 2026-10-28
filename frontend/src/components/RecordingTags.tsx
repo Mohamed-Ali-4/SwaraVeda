@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { HiOutlineTag, HiOutlineX } from 'react-icons/hi';
-import api from '../lib/api';
+import api, { errorMessage } from '../lib/api';
 
 interface Tag {
   id: string;
@@ -28,7 +28,7 @@ export default function RecordingTags({ recordingId, canEdit }: { recordingId: s
       setTags((prev) => [...prev, res.data]);
       setLabel('');
     } catch (err: any) {
-      alert(err.response?.data?.detail || 'Could not add tag');
+      alert(errorMessage(err, 'Could not add tag'));
     }
   };
 
@@ -37,7 +37,7 @@ export default function RecordingTags({ recordingId, canEdit }: { recordingId: s
       await api.delete(`/tags/${recordingId}/tags/${tag.id}`);
       setTags((prev) => prev.filter((t) => t.id !== tag.id));
     } catch (err: any) {
-      alert(err.response?.data?.detail || 'Could not remove tag');
+      alert(errorMessage(err, 'Could not remove tag'));
     }
   };
 

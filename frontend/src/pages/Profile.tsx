@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { useAuth } from '../lib/auth';
-import api from '../lib/api';
+import api, { errorMessage } from '../lib/api';
 
 export default function Profile() {
   const { user } = useAuth();
@@ -36,7 +36,7 @@ export default function Profile() {
       setPwSaved(true);
       setTimeout(() => setPwSaved(false), 3000);
     } catch (err: any) {
-      setPwError(err.response?.data?.detail || 'Failed to change password');
+      setPwError(errorMessage(err, 'Failed to change password'));
     }
   };
 

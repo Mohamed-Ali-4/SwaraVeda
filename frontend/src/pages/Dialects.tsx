@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { HiOutlineGlobeAlt, HiOutlinePlus } from 'react-icons/hi';
-import api from '../lib/api';
+import api, { errorMessage } from '../lib/api';
 import { useAuth } from '../lib/auth';
 
 interface Dialect {
@@ -78,7 +78,7 @@ export default function Dialects() {
       setForm(emptyForm);
       setShowForm(false);
     } catch (err: any) {
-      setError(err.response?.data?.detail?.[0]?.msg || err.response?.data?.detail || 'Could not add dialect');
+      setError(errorMessage(err, 'Could not add dialect'));
     } finally {
       setSaving(false);
     }
@@ -89,7 +89,7 @@ export default function Dialects() {
       const res = await api.patch(`/dialects/${d.id}`, { asr_language: asr_language || null });
       setDialects((prev) => prev.map((x) => (x.id === d.id ? res.data : x)));
     } catch (err: any) {
-      alert(err.response?.data?.detail || 'Could not update dialect');
+      alert(errorMessage(err, 'Could not update dialect'));
     }
   };
 

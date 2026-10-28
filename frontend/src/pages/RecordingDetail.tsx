@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { HiOutlineCheckCircle, HiOutlinePencil, HiOutlinePlay, HiOutlineSparkles } from 'react-icons/hi';
-import api from '../lib/api';
+import api, { errorMessage } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { useNlpStatus } from '../lib/nlp';
 import RecordingTags from '../components/RecordingTags';
@@ -96,7 +96,7 @@ export default function RecordingDetail() {
       setSegments((prev) => prev.map((s) => (s.id === segId ? res.data : s)));
       setEditingId(null);
     } catch (err: any) {
-      alert(err.response?.data?.detail || 'Save failed');
+      alert(errorMessage(err, 'Save failed'));
     }
   };
 
@@ -110,7 +110,7 @@ export default function RecordingDetail() {
         transliteration: res.data.transliteration || f.transliteration,
       }));
     } catch (err: any) {
-      alert(err.response?.data?.detail || 'Translation failed');
+      alert(errorMessage(err, 'Translation failed'));
     } finally {
       setTranslatingId(null);
     }
@@ -121,7 +121,7 @@ export default function RecordingDetail() {
       const res = await api.post(`/segments/${segId}/verify`);
       setSegments((prev) => prev.map((s) => (s.id === segId ? res.data : s)));
     } catch (err: any) {
-      alert(err.response?.data?.detail || 'Verification failed');
+      alert(errorMessage(err, 'Verification failed'));
     }
   };
 
@@ -132,7 +132,7 @@ export default function RecordingDetail() {
       setJob(res.data);
       setRecording((r) => r ? { ...r, status: 'transcribing' } : r);
     } catch (err: any) {
-      alert(err.response?.data?.detail || 'Transcription failed');
+      alert(errorMessage(err, 'Transcription failed'));
     } finally {
       setTranscribing(false);
     }

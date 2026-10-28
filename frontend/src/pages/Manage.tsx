@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { HiOutlineDownload, HiOutlineUserGroup } from 'react-icons/hi';
-import api from '../lib/api';
+import api, { errorMessage } from '../lib/api';
 import { useAuth } from '../lib/auth';
 
 interface AdminUser {
@@ -105,7 +105,7 @@ function Users({ currentUserId }: { currentUserId: string }) {
       const res = await api.patch(`/admin/users/${u.id}`, { role });
       setUsers((prev) => prev.map((x) => (x.id === u.id ? res.data : x)));
     } catch (err: any) {
-      alert(err.response?.data?.detail || 'Could not change role');
+      alert(errorMessage(err, 'Could not change role'));
     }
   };
 

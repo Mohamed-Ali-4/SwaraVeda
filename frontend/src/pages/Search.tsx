@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { HiOutlineSearch } from 'react-icons/hi';
-import api from '../lib/api';
+import api, { errorMessage } from '../lib/api';
 import { useNlpStatus } from '../lib/nlp';
 
 interface Hit {
@@ -37,7 +37,7 @@ export default function Search() {
     } catch (err: any) {
       setHits([]);
       setSearched(false);
-      setError(err.response?.data?.detail || 'Search failed. Please try again.');
+      setError(errorMessage(err, 'Search failed. Please try again.'));
     } finally {
       setLoading(false);
     }
