@@ -90,6 +90,19 @@ class DialectIn(BaseModel):
     script: Optional[str] = None
     endangerment_status: Optional[EndangermentStatus] = None
     description: Optional[str] = None
+    # Whisper language code to transcribe with (e.g. "kn" for a Kannada-script
+    # dialect). Left empty, the language is auto-detected.
+    asr_language: Optional[str] = None
+
+
+class DialectPatch(BaseModel):
+    name: Optional[str] = None
+    iso_code: Optional[str] = None
+    region: Optional[str] = None
+    script: Optional[str] = None
+    endangerment_status: Optional[EndangermentStatus] = None
+    description: Optional[str] = None
+    asr_language: Optional[str] = None
 
 
 class DialectOut(BaseModel):
@@ -100,6 +113,7 @@ class DialectOut(BaseModel):
     script: Optional[str] = None
     endangerment_status: Optional[str] = None
     description: Optional[str] = None
+    asr_language: Optional[str] = None
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
@@ -177,6 +191,7 @@ class SegmentOut(BaseModel):
 class RecordingDetail(BaseModel):
     recording: RecordingOut
     segments: List[SegmentOut]
+    latest_job: Optional["JobOut"] = None
 
 
 class SegmentPatch(BaseModel):
@@ -184,6 +199,11 @@ class SegmentPatch(BaseModel):
     transliteration: Optional[str] = None
     translation_en: Optional[str] = None
     speaker_label: Optional[str] = None
+
+
+class TranslationOut(BaseModel):
+    translation_en: Optional[str] = None
+    transliteration: Optional[str] = None
 
 
 class UploadUrlIn(BaseModel):
@@ -249,6 +269,29 @@ class JobOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class NLPStatus(BaseModel):
+    transcription: bool
+    translation: bool
+    semantic_search: bool
+
+
+# ──── Admin ────
+
+class AdminUserOut(BaseModel):
+    id: UUID
+    display_name: str
+    email: str
+    role: str
+    native_dialect: Optional[str] = None
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class RolePatch(BaseModel):
+    role: RoleEnum
+
+
 # ──── Stats ────
 
 class StatsOut(BaseModel):
@@ -268,3 +311,6 @@ class Page(BaseModel):
     total: int
     page: int
     page_size: int
+
+
+RecordingDetail.model_rebuild()

@@ -7,3 +7,8 @@ engine = create_engine(settings.DATABASE_URL, pool_pre_ping=True, pool_size=5, m
 def get_session():
     with Session(engine) as session:
         yield session
+
+
+def new_session() -> Session:
+    """A session for work outside a request, such as background tasks."""
+    return Session(engine)
