@@ -1,0 +1,555 @@
+[
+ {
+  "name": "Tulu",
+  "region": "Coastal Karnataka (Dakshina Kannada, Udupi) and Kasaragod, Kerala",
+  "script": "Kannada",
+  "description": "Dravidian language with a rich oral tradition of paddanas, ballads sung during field work and in bhuta kola rituals.",
+  "iso_code": "tcy",
+  "asr_language": "kn"
+ },
+ {
+  "name": "Kodava",
+  "region": "Kodagu, Karnataka",
+  "script": "Kannada",
+  "description": "Language of the Kodava people of the Kodagu hills; traditionally oral, now usually written in Kannada script.",
+  "iso_code": "kfa",
+  "asr_language": "kn"
+ },
+ {
+  "name": "Beary",
+  "region": "Coastal Karnataka and Kasaragod, Kerala",
+  "script": "Kannada, Malayalam",
+  "description": "Spoken by the Beary community of the Karnataka coast; draws on Malayalam and Tulu.",
+  "asr_language": "kn"
+ },
+ {
+  "name": "Havyaka Kannada",
+  "region": "Uttara Kannada, Shivamogga and Dakshina Kannada, Karnataka",
+  "script": "Kannada",
+  "description": "Kannada dialect of the Havyaka community that keeps many older Kannada forms.",
+  "asr_language": "kn"
+ },
+ {
+  "name": "Badaga",
+  "region": "Nilgiris, Tamil Nadu",
+  "script": "Kannada, Tamil",
+  "description": "Closely related to Kannada; spoken by the Badaga community of the Nilgiri hills.",
+  "iso_code": "bfq",
+  "asr_language": "kn"
+ },
+ {
+  "name": "Toda",
+  "region": "Nilgiris, Tamil Nadu",
+  "script": "Tamil",
+  "description": "Dravidian language of the pastoral Toda people, known for its unusual sounds and its sung poetry.",
+  "iso_code": "tcx",
+  "asr_language": "ta"
+ },
+ {
+  "name": "Kota",
+  "region": "Nilgiris, Tamil Nadu",
+  "script": "Tamil",
+  "description": "Spoken by the Kota community of artisans and musicians in a few Nilgiri villages.",
+  "iso_code": "kfe",
+  "asr_language": "ta"
+ },
+ {
+  "name": "Irula",
+  "region": "Nilgiris and Coimbatore, Tamil Nadu; Attappadi, Kerala",
+  "script": "Tamil",
+  "description": "Dravidian language of the Irula people, related to Tamil.",
+  "iso_code": "iru",
+  "asr_language": "ta"
+ },
+ {
+  "name": "Saurashtra",
+  "region": "Madurai and other towns of Tamil Nadu",
+  "script": "Tamil, Saurashtra",
+  "description": "Indo-Aryan language of silk-weaving communities whose ancestors came from Gujarat; it has its own script.",
+  "iso_code": "saz"
+ },
+ {
+  "name": "Paniya",
+  "region": "Wayanad, Kerala, and neighbouring Karnataka and Tamil Nadu",
+  "script": "Malayalam",
+  "description": "Dravidian language of the Paniya people of the Wayanad plateau.",
+  "iso_code": "pcg",
+  "asr_language": "ml"
+ },
+ {
+  "name": "Jeseri",
+  "region": "Lakshadweep",
+  "script": "Malayalam",
+  "description": "Island variety close to Malayalam, spoken across the Lakshadweep islands.",
+  "asr_language": "ml"
+ },
+ {
+  "name": "Yerukula",
+  "region": "Andhra Pradesh and Telangana",
+  "script": "Telugu",
+  "description": "Dravidian language of the Yerukala community, related to Tamil.",
+  "iso_code": "yeu",
+  "asr_language": "te"
+ },
+ {
+  "name": "Koya",
+  "region": "Telangana, Andhra Pradesh, Chhattisgarh and Odisha",
+  "script": "Telugu",
+  "description": "Dravidian language of the Koya people, closely related to Gondi.",
+  "iso_code": "kff",
+  "asr_language": "te"
+ },
+ {
+  "name": "Lambadi",
+  "region": "Telangana, Andhra Pradesh, Karnataka and Maharashtra",
+  "script": "Devanagari, Telugu, Kannada",
+  "description": "Indo-Aryan language of the Banjara community, written in the script of whichever state its speakers live in.",
+  "iso_code": "lmn"
+ },
+ {
+  "name": "Gondi",
+  "region": "Madhya Pradesh, Maharashtra, Chhattisgarh and Telangana",
+  "script": "Devanagari, Telugu, Gunjala Gondi",
+  "description": "Dravidian language of the Gond people, one of India's largest Adivasi communities, with many regional varieties.",
+  "iso_code": "gon",
+  "asr_language": "hi"
+ },
+ {
+  "name": "Kurukh",
+  "region": "Jharkhand, Chhattisgarh, Odisha and West Bengal",
+  "script": "Devanagari, Tolong Siki",
+  "description": "Dravidian language of the Oraon people.",
+  "iso_code": "kru",
+  "asr_language": "hi"
+ },
+ {
+  "name": "Kui",
+  "region": "Kandhamal and neighbouring districts, Odisha",
+  "script": "Odia",
+  "description": "Dravidian language of the Kondh people.",
+  "iso_code": "kxu"
+ },
+ {
+  "name": "Kuvi",
+  "region": "Southern Odisha and northern Andhra Pradesh",
+  "script": "Odia, Telugu",
+  "description": "Kondh language closely related to Kui.",
+  "iso_code": "kxv"
+ },
+ {
+  "name": "Sora",
+  "region": "Southern Odisha and northern Andhra Pradesh",
+  "script": "Sorang Sompeng, Odia, Telugu",
+  "description": "Munda language with its own script, Sorang Sompeng.",
+  "iso_code": "srb"
+ },
+ {
+  "name": "Juang",
+  "region": "Keonjhar, Odisha",
+  "script": "Odia",
+  "description": "Munda language of the Juang people of the Odisha hills.",
+  "iso_code": "jun"
+ },
+ {
+  "name": "Bonda",
+  "region": "Malkangiri, Odisha",
+  "script": "Odia",
+  "description": "Munda language of the Bonda (Remo) people, spoken in a small group of hill villages.",
+  "iso_code": "bfw"
+ },
+ {
+  "name": "Santali",
+  "region": "Jharkhand, West Bengal, Odisha and Assam",
+  "script": "Ol Chiki",
+  "description": "The largest Munda language, written in its own Ol Chiki script.",
+  "iso_code": "sat"
+ },
+ {
+  "name": "Ho",
+  "region": "Jharkhand and Odisha",
+  "script": "Warang Citi, Devanagari, Odia",
+  "description": "Munda language with its own Warang Citi script.",
+  "iso_code": "hoc",
+  "asr_language": "hi"
+ },
+ {
+  "name": "Mundari",
+  "region": "Jharkhand, Odisha and West Bengal",
+  "script": "Devanagari",
+  "description": "Munda language of the Munda people.",
+  "iso_code": "unr",
+  "asr_language": "hi"
+ },
+ {
+  "name": "Halbi",
+  "region": "Bastar, Chhattisgarh, and neighbouring Odisha and Maharashtra",
+  "script": "Devanagari",
+  "description": "Indo-Aryan language long used as a common tongue across the communities of Bastar.",
+  "iso_code": "hlb",
+  "asr_language": "hi"
+ },
+ {
+  "name": "Chhattisgarhi",
+  "region": "Chhattisgarh",
+  "script": "Devanagari",
+  "description": "Eastern Hindi language with a strong folk tradition, including Pandavani storytelling.",
+  "iso_code": "hne",
+  "asr_language": "hi"
+ },
+ {
+  "name": "Bhili",
+  "region": "Rajasthan, Gujarat, Madhya Pradesh and Maharashtra",
+  "script": "Devanagari",
+  "description": "Indo-Aryan language of the Bhil people, with many regional varieties.",
+  "iso_code": "bhb",
+  "asr_language": "hi"
+ },
+ {
+  "name": "Nihali",
+  "region": "A few villages of Maharashtra and Madhya Pradesh",
+  "script": "Devanagari",
+  "description": "A language isolate: unrelated to any of its neighbours.",
+  "iso_code": "nll",
+  "asr_language": "mr"
+ },
+ {
+  "name": "Warli",
+  "region": "Palghar and Thane, Maharashtra, and southern Gujarat",
+  "script": "Devanagari",
+  "description": "Language of the Warli people, also known for Warli painting.",
+  "iso_code": "vav",
+  "asr_language": "mr"
+ },
+ {
+  "name": "Katkari",
+  "region": "Raigad and Thane, Maharashtra",
+  "script": "Devanagari",
+  "description": "Indo-Aryan language of the Katkari community.",
+  "iso_code": "kfu",
+  "asr_language": "mr"
+ },
+ {
+  "name": "Konkani (Goan)",
+  "region": "Goa and the Konkan coast of Karnataka and Maharashtra",
+  "script": "Devanagari, Roman, Kannada",
+  "description": "Indo-Aryan language written in different scripts by different communities.",
+  "iso_code": "gom",
+  "asr_language": "mr"
+ },
+ {
+  "name": "Malvani",
+  "region": "Sindhudurg, Maharashtra",
+  "script": "Devanagari",
+  "description": "Konkani variety of the southern Konkan coast, home of the Dashavatar folk theatre.",
+  "asr_language": "mr"
+ },
+ {
+  "name": "Kutchi",
+  "region": "Kutch, Gujarat",
+  "script": "Gujarati",
+  "description": "Sindhi-related language of Kutch, usually written in Gujarati script.",
+  "iso_code": "kfr",
+  "asr_language": "gu"
+ },
+ {
+  "name": "Marwari",
+  "region": "Rajasthan",
+  "script": "Devanagari",
+  "description": "Rajasthani language of the Marwar region, with a long tradition of ballads and folk songs.",
+  "iso_code": "mwr",
+  "asr_language": "hi"
+ },
+ {
+  "name": "Bundeli",
+  "region": "Bundelkhand, Uttar Pradesh and Madhya Pradesh",
+  "script": "Devanagari",
+  "description": "Western Hindi language, known for the sung Alha ballads.",
+  "iso_code": "bns",
+  "asr_language": "hi"
+ },
+ {
+  "name": "Awadhi",
+  "region": "Awadh, Uttar Pradesh",
+  "script": "Devanagari",
+  "description": "Eastern Hindi language of Tulsidas's Ramcharitmanas.",
+  "iso_code": "awa",
+  "asr_language": "hi"
+ },
+ {
+  "name": "Bhojpuri",
+  "region": "Bihar and eastern Uttar Pradesh; diaspora in Mauritius, Fiji and Suriname",
+  "script": "Devanagari",
+  "description": "Widely spoken, with a large tradition of folk songs, but little written material.",
+  "iso_code": "bho",
+  "asr_language": "hi"
+ },
+ {
+  "name": "Maithili",
+  "region": "Mithila region of Bihar and Nepal",
+  "script": "Devanagari, Tirhuta",
+  "description": "Language of Mithila, historically written in its own Tirhuta script.",
+  "iso_code": "mai",
+  "asr_language": "hi"
+ },
+ {
+  "name": "Magahi",
+  "region": "Southern Bihar",
+  "script": "Devanagari",
+  "description": "Bihari language of the old Magadha region.",
+  "iso_code": "mag",
+  "asr_language": "hi"
+ },
+ {
+  "name": "Garhwali",
+  "region": "Garhwal, Uttarakhand",
+  "script": "Devanagari",
+  "description": "Central Pahari language of the Garhwal Himalaya.",
+  "iso_code": "gbm",
+  "asr_language": "hi"
+ },
+ {
+  "name": "Kumaoni",
+  "region": "Kumaon, Uttarakhand",
+  "script": "Devanagari",
+  "description": "Central Pahari language of the Kumaon hills.",
+  "iso_code": "kfy",
+  "asr_language": "hi"
+ },
+ {
+  "name": "Jaunsari",
+  "region": "Jaunsar-Bawar, Uttarakhand",
+  "script": "Devanagari",
+  "description": "Western Pahari language of the Jaunsar-Bawar region.",
+  "iso_code": "jns",
+  "asr_language": "hi"
+ },
+ {
+  "name": "Kangri",
+  "region": "Kangra, Himachal Pradesh",
+  "script": "Devanagari",
+  "description": "Western Pahari language of the Kangra valley.",
+  "iso_code": "xnr",
+  "asr_language": "hi"
+ },
+ {
+  "name": "Kinnauri",
+  "region": "Kinnaur, Himachal Pradesh",
+  "script": "Devanagari",
+  "description": "Tibeto-Burman language of the Kinnaur valley.",
+  "iso_code": "kfk",
+  "asr_language": "hi"
+ },
+ {
+  "name": "Dogri",
+  "region": "Jammu",
+  "script": "Devanagari",
+  "description": "Language of the Jammu region.",
+  "iso_code": "dgo",
+  "asr_language": "hi"
+ },
+ {
+  "name": "Ladakhi",
+  "region": "Ladakh",
+  "script": "Tibetan",
+  "description": "Tibetic language of Ladakh, written in Tibetan script.",
+  "iso_code": "lbj"
+ },
+ {
+  "name": "Lepcha",
+  "region": "Sikkim and the Darjeeling hills, West Bengal",
+  "script": "Lepcha",
+  "description": "Language of the Lepcha (Róng) people, with its own script.",
+  "iso_code": "lep"
+ },
+ {
+  "name": "Limbu",
+  "region": "Sikkim and eastern Nepal",
+  "script": "Limbu (Sirijonga)",
+  "description": "Kiranti language with its own script.",
+  "iso_code": "lif"
+ },
+ {
+  "name": "Sikkimese",
+  "region": "Sikkim",
+  "script": "Tibetan",
+  "description": "Tibetic language of the Bhutia people of Sikkim.",
+  "iso_code": "sip"
+ },
+ {
+  "name": "Toto",
+  "region": "Totopara, Alipurduar, West Bengal",
+  "script": "Toto, Bengali",
+  "description": "Spoken only in the village of Totopara; a Toto script was created recently.",
+  "iso_code": "txo"
+ },
+ {
+  "name": "Bodo",
+  "region": "Assam",
+  "script": "Devanagari",
+  "description": "Tibeto-Burman language of the Bodo people.",
+  "iso_code": "brx",
+  "asr_language": "hi"
+ },
+ {
+  "name": "Mising",
+  "region": "Upper Assam and Arunachal Pradesh",
+  "script": "Latin",
+  "description": "Tani language of the Mising people of the Brahmaputra valley.",
+  "iso_code": "mrg"
+ },
+ {
+  "name": "Karbi",
+  "region": "Karbi Anglong, Assam",
+  "script": "Latin",
+  "description": "Tibeto-Burman language of the Karbi people.",
+  "iso_code": "mjw"
+ },
+ {
+  "name": "Dimasa",
+  "region": "Dima Hasao, Assam",
+  "script": "Latin, Bengali",
+  "description": "Tibeto-Burman language of the Dimasa people.",
+  "iso_code": "dis"
+ },
+ {
+  "name": "Rabha",
+  "region": "Assam, Meghalaya and West Bengal",
+  "script": "Latin, Assamese",
+  "description": "Tibeto-Burman language of the Rabha people.",
+  "iso_code": "rah"
+ },
+ {
+  "name": "Kokborok",
+  "region": "Tripura",
+  "script": "Latin, Bengali",
+  "description": "Tibeto-Burman language of Tripura's indigenous communities.",
+  "iso_code": "trp"
+ },
+ {
+  "name": "Khasi",
+  "region": "Meghalaya",
+  "script": "Latin",
+  "description": "Austroasiatic language of the Khasi people.",
+  "iso_code": "kha"
+ },
+ {
+  "name": "Garo",
+  "region": "Meghalaya",
+  "script": "Latin",
+  "description": "Tibeto-Burman language of the Garo people.",
+  "iso_code": "grt"
+ },
+ {
+  "name": "Mizo",
+  "region": "Mizoram",
+  "script": "Latin",
+  "description": "Kuki-Chin language of Mizoram.",
+  "iso_code": "lus"
+ },
+ {
+  "name": "Meitei",
+  "region": "Manipur",
+  "script": "Meitei Mayek, Bengali",
+  "description": "Language of Manipur, with its own Meitei Mayek script.",
+  "iso_code": "mni"
+ },
+ {
+  "name": "Tangkhul",
+  "region": "Ukhrul, Manipur",
+  "script": "Latin",
+  "description": "Naga language of the Tangkhul people, with many village varieties.",
+  "iso_code": "nmf"
+ },
+ {
+  "name": "Ao",
+  "region": "Mokokchung, Nagaland",
+  "script": "Latin",
+  "description": "Naga language of the Ao people.",
+  "iso_code": "njo"
+ },
+ {
+  "name": "Angami",
+  "region": "Kohima, Nagaland",
+  "script": "Latin",
+  "description": "Naga language of the Angami people.",
+  "iso_code": "njm"
+ },
+ {
+  "name": "Lotha",
+  "region": "Wokha, Nagaland",
+  "script": "Latin",
+  "description": "Naga language of the Lotha people.",
+  "iso_code": "njh"
+ },
+ {
+  "name": "Adi",
+  "region": "Arunachal Pradesh",
+  "script": "Latin",
+  "description": "Tani language of the Adi people.",
+  "iso_code": "adi"
+ },
+ {
+  "name": "Nyishi",
+  "region": "Arunachal Pradesh",
+  "script": "Latin",
+  "description": "Tani language of the Nyishi people.",
+  "iso_code": "njz"
+ },
+ {
+  "name": "Apatani",
+  "region": "Ziro valley, Arunachal Pradesh",
+  "script": "Latin",
+  "description": "Tani language of the Apatani people of the Ziro valley.",
+  "iso_code": "apt"
+ },
+ {
+  "name": "Wancho",
+  "region": "Longding, Arunachal Pradesh",
+  "script": "Wancho",
+  "description": "Naga language with its own recently created Wancho script.",
+  "iso_code": "nnp"
+ },
+ {
+  "name": "Idu Mishmi",
+  "region": "Dibang Valley, Arunachal Pradesh",
+  "script": "Latin",
+  "description": "Language of the Idu Mishmi people.",
+  "iso_code": "clk"
+ },
+ {
+  "name": "Koro",
+  "region": "East Kameng, Arunachal Pradesh",
+  "script": "Latin",
+  "description": "Identified by linguists only in 2008; spoken in a few villages.",
+  "iso_code": "jkr"
+ },
+ {
+  "name": "Sherdukpen",
+  "region": "West Kameng, Arunachal Pradesh",
+  "script": "Latin",
+  "description": "Language of the Sherdukpen people.",
+  "iso_code": "sdp"
+ },
+ {
+  "name": "Great Andamanese",
+  "region": "Strait Island, Andaman Islands",
+  "script": "Mostly unwritten",
+  "description": "Mixed variety of the Great Andamanese languages; only a few speakers remain.",
+  "iso_code": "gac",
+  "endangerment_status": "critically endangered"
+ },
+ {
+  "name": "Onge",
+  "region": "Little Andaman, Andaman Islands",
+  "script": "Mostly unwritten",
+  "description": "Language of the Onge people, one of the Andamans' indigenous communities.",
+  "iso_code": "oon"
+ },
+ {
+  "name": "Jarawa",
+  "region": "South and Middle Andaman",
+  "script": "Mostly unwritten",
+  "description": "Language of the Jarawa people of the Andaman forests.",
+  "iso_code": "anq"
+ }
+]
