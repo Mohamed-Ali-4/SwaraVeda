@@ -4,10 +4,12 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 from sqlalchemy.engine import make_url
+from sqlmodel import Session, select
 
-from app import migrations
+from app import migrations, nlp
 from app.config import settings
 from app.db import engine
+from app.models import Contributor, Dialect, Job, Recording, Segment, Tag
 from app.routers import auth_routes, dialects, recordings, segments, search, stats, tags, jobs
 
 
@@ -47,6 +49,16 @@ def health():
     return {"status": "ok", "service": "swaraveda-api"}
 
 
+@app.get("/nlp/status", tags=["meta"])
+def nlp_status():
+    """Which AI features this server has configured, so the UI can hide the rest."""
+    return {
+        "transcription": nlp.transcription_enabled(),
+        "translation": nlp.translation_enabled(),
+        "semantic_search": nlp.embeddings_enabled(),
+    }
+
+
 @app.get("/health/db", tags=["meta"])
 def health_db():
     """Checks the database connection and each table. Errors are returned with
@@ -63,13 +75,15 @@ def health_db():
     except Exception as e:
         return {"status": "error", "error": type(e).__name__, "detail": clean(e)}
 
+    # Query through the models, so a column the code expects but the
+    # database lacks shows up here too.
     tables = {}
-    for table in ("contributors", "dialects", "recordings", "segments", "tags", "jobs"):
+    for model in (Contributor, Dialect, Recording, Segment, Tag, Job):
         try:
-            with engine.connect() as conn:
-                conn.execute(text(f"select * from {table} limit 1"))
-            tables[table] = "ok"
+            with Session(engine) as session:
+                session.exec(select(model).limit(1)).all()
+            tables[model.__tablename__] = "ok"
         except Exception as e:
-            tables[table] = clean(e)
+            tables[model.__tablename__] = clean(e)
     ok = all(v == "ok" for v in tables.values())
     return {"status": "ok" if ok else "error", "tables": tables}
