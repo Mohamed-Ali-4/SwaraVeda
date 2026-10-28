@@ -25,6 +25,9 @@ class Settings(BaseSettings):
     HF_TOKEN: str = ""
     HF_INFERENCE_URL: str = "https://router.huggingface.co/hf-inference"
     EMBEDDING_MODEL: str = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
+    # Largest upload the pipeline downloads, and largest file (after
+    # pre-processing) sent to the transcription service.
+    MAX_DOWNLOAD_MB: int = 200
     MAX_AUDIO_MB: int = 25
 
     @property

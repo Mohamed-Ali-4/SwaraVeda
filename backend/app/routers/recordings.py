@@ -69,11 +69,17 @@ def list_recordings(
     dialect_id: Optional[UUID] = None,
     genre: Optional[str] = None,
     status: Optional[str] = None,
+    q: Optional[str] = Query(None, description="Search titles and speakers"),
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
 ):
     stmt = select(Recording)
     count_stmt = select(func.count()).select_from(Recording)
+    if q and q.strip():
+        like = f"%{q.strip()}%"
+        match = Recording.title.ilike(like) | Recording.speaker_name.ilike(like)
+        stmt = stmt.where(match)
+        count_stmt = count_stmt.where(match)
 
     for col, val in (
         (Recording.dialect_id, dialect_id),

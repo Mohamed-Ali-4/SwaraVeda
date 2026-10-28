@@ -1,14 +1,16 @@
 """Transcription pipeline that runs inside the API as a background task when
 hosted NLP is configured (see app.nlp). Mirrors what the local ML worker does."""
 import logging
+import tempfile
 from datetime import datetime, timezone
+from pathlib import Path
 from uuid import UUID
 
 import httpx
 from sqlalchemy import text
 from sqlmodel import Session, select
 
-from app import nlp
+from app import audio, nlp
 from app.config import settings
 from app.db import new_session
 from app.models import Dialect, Job, Recording, Segment
@@ -25,23 +27,36 @@ def _update_job(session: Session, job: Job, **fields) -> None:
     session.commit()
 
 
-def _download(rec: Recording) -> tuple[bytes, str]:
+def _download(rec: Recording, workdir: Path) -> Path:
+    """Streams the recording to disk, so large files don't fill memory."""
     url = rec.audio_url or (public_url(rec.storage_path) if rec.storage_path else None)
     if not url:
         raise nlp.NLPError("This recording has no audio file")
-    limit = settings.MAX_AUDIO_MB * 1024 * 1024
-    buf = bytearray()
-    with httpx.stream("GET", url, follow_redirects=True, timeout=120) as resp:
+    name = (rec.storage_path or url).rsplit("/", 1)[-1].split("?")[0] or "audio.webm"
+    dest = workdir / name
+    limit = settings.MAX_DOWNLOAD_MB * 1024 * 1024
+    size = 0
+    with httpx.stream("GET", url, follow_redirects=True, timeout=120) as resp, dest.open("wb") as f:
         if resp.status_code != 200:
             raise nlp.NLPError(f"Couldn't download the audio (HTTP {resp.status_code})")
         for chunk in resp.iter_bytes():
-            buf.extend(chunk)
-            if len(buf) > limit:
+            size += len(chunk)
+            if size > limit:
                 raise nlp.NLPError(
-                    f"Audio is larger than {settings.MAX_AUDIO_MB} MB; split or compress it"
+                    f"Audio is larger than {settings.MAX_DOWNLOAD_MB} MB; split it into parts"
                 )
-    name = (rec.storage_path or url).rsplit("/", 1)[-1].split("?")[0] or "audio.webm"
-    return bytes(buf), name
+            f.write(chunk)
+    return dest
+
+
+def _prepare_audio(rec: Recording, workdir: Path) -> audio.Prepared:
+    prepared = audio.prepare_file(_download(rec, workdir), workdir)
+    if prepared.path.stat().st_size > settings.MAX_AUDIO_MB * 1024 * 1024:
+        raise nlp.NLPError(
+            f"Audio is still larger than {settings.MAX_AUDIO_MB} MB after compression; "
+            "split it into parts"
+        )
+    return prepared
 
 
 def embed_segments(session: Session, segments: list[Segment]) -> int:
@@ -74,13 +89,15 @@ def run_transcription(job_id: UUID) -> None:
                 raise nlp.NLPError("Recording no longer exists")
             _update_job(session, job, status="running", progress=5, error=None)
 
-            audio, filename = _download(rec)
-            _update_job(session, job, progress=20)
-
             dialect = session.get(Dialect, rec.dialect_id) if rec.dialect_id else None
-            segments, duration = nlp.transcribe_audio(
-                audio, filename, dialect.asr_language if dialect else None
-            )
+            with tempfile.TemporaryDirectory() as tmp:
+                prepared = _prepare_audio(rec, Path(tmp))
+                _update_job(session, job, progress=25)
+                segments, duration = nlp.transcribe_audio(
+                    prepared.path.read_bytes(), prepared.path.name,
+                    dialect.asr_language if dialect else None,
+                )
+            duration = prepared.duration or duration
             _update_job(session, job, progress=70)
 
             for old in session.exec(select(Segment).where(Segment.recording_id == rec.id)).all():

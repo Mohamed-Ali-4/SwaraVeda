@@ -25,6 +25,7 @@ def search(
 ):
     sql = """
         select s.id as segment_id, s.recording_id, r.title as recording_title,
+               r.audio_url, d.name as dialect_name,
                s.seq, s.start_ms, s.end_ms,
                coalesce(s.corrected_text, s.asr_text) as text,
                ts_rank(
@@ -33,6 +34,7 @@ def search(
                ) as score
         from segments s
         join recordings r on r.id = s.recording_id
+        left join dialects d on d.id = r.dialect_id
         where to_tsvector('simple', coalesce(s.corrected_text, s.asr_text, ''))
               @@ plainto_tsquery('simple', :q)
           and (cast(:dialect_id as uuid) is null or r.dialect_id = cast(:dialect_id as uuid))
@@ -72,11 +74,13 @@ def semantic_search(
 
     sql = """
         select s.id as segment_id, s.recording_id, r.title as recording_title,
+               r.audio_url, d.name as dialect_name,
                s.seq, s.start_ms, s.end_ms,
                coalesce(s.corrected_text, s.asr_text) as text,
                1 - (s.embedding <=> cast(:vec as vector)) as score
         from segments s
         join recordings r on r.id = s.recording_id
+        left join dialects d on d.id = r.dialect_id
         where s.embedding is not null
           and (cast(:dialect_id as uuid) is null or r.dialect_id = cast(:dialect_id as uuid))
         order by s.embedding <=> cast(:vec as vector)
