@@ -10,6 +10,7 @@ import RecordingDetail from './pages/RecordingDetail';
 import Search from './pages/Search';
 import Dialects from './pages/Dialects';
 import Profile from './pages/Profile';
+import Manage from './pages/Manage';
 
 export default function App() {
   return (
@@ -26,6 +27,7 @@ export default function App() {
             <Route path="/search" element={<Search />} />
             <Route path="/dialects" element={<Dialects />} />
             <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+            <Route path="/manage" element={<ProtectedRoute><Manage /></ProtectedRoute>} />
           </Route>
         </Routes>
       </AuthProvider>

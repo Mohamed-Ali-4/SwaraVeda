@@ -1,8 +1,9 @@
 import uuid as uuidlib
+from datetime import datetime, timedelta, timezone
 from typing import Optional, List
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 from sqlmodel import Session, select, func
 
 from app.db import get_session
@@ -13,6 +14,27 @@ from app.schemas import (
 )
 from app.auth import current_user
 from app.storage import create_signed_upload, public_url
+from app import nlp
+from app.pipeline import run_transcription
+
+# A job that hasn't reported progress for this long is assumed dead (e.g. the
+# server restarted mid-job) and can be replaced by a new one.
+STALE_JOB_AFTER = timedelta(minutes=15)
+
+
+def _latest_job(session: Session, recording_id: UUID) -> Optional[Job]:
+    return session.exec(
+        select(Job).where(Job.recording_id == recording_id).order_by(Job.created_at.desc())
+    ).first()
+
+
+def _is_active(job: Optional[Job]) -> bool:
+    if not job or job.status not in ("queued", "running"):
+        return False
+    updated = job.updated_at
+    if updated.tzinfo is None:
+        updated = updated.replace(tzinfo=timezone.utc)
+    return datetime.now(timezone.utc) - updated < STALE_JOB_AFTER
 
 router = APIRouter(prefix="/recordings", tags=["recordings"])
 
@@ -77,7 +99,7 @@ def get_recording(recording_id: UUID, session: Session = Depends(get_session)):
     segments = session.exec(
         select(Segment).where(Segment.recording_id == recording_id).order_by(Segment.seq)
     ).all()
-    return {"recording": rec, "segments": segments}
+    return {"recording": rec, "segments": segments, "latest_job": _latest_job(session, recording_id)}
 
 
 @router.patch("/{recording_id}", response_model=RecordingOut)
@@ -119,6 +141,7 @@ def delete_recording(
 @router.post("/{recording_id}/transcribe", response_model=JobOut)
 def transcribe(
     recording_id: UUID,
+    background: BackgroundTasks,
     session: Session = Depends(get_session),
     user: Contributor = Depends(current_user),
 ):
@@ -126,12 +149,19 @@ def transcribe(
     if not rec:
         raise HTTPException(404, "Recording not found")
 
+    latest = _latest_job(session, recording_id)
+    if _is_active(latest):
+        return latest
+
     job = Job(recording_id=recording_id, kind="transcribe", status="queued")
     rec.status = "transcribing"
     session.add(job)
     session.add(rec)
     session.commit()
     session.refresh(job)
+    # Without hosted NLP the job stays queued for the local ML worker.
+    if nlp.transcription_enabled():
+        background.add_task(run_transcription, job.id)
     return job
 
 

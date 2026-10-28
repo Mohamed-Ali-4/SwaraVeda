@@ -30,6 +30,7 @@ class Dialect(SQLModel, table=True):
     script: Optional[str] = None
     endangerment_status: Optional[str] = None
     description: Optional[str] = None
+    asr_language: Optional[str] = None
     created_at: datetime = Field(default_factory=_utcnow)
 
 

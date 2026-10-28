@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
+import { errorMessage } from '../lib/api';
 
 export default function Login() {
   const { login } = useAuth();
@@ -18,7 +19,7 @@ export default function Login() {
       await login(email, password);
       navigate('/');
     } catch (err: any) {
-      setError(err.response?.data?.detail || 'Login failed');
+      setError(errorMessage(err, 'Login failed'));
     } finally {
       setLoading(false);
     }

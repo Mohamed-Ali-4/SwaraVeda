@@ -1,13 +1,17 @@
 from datetime import datetime, timezone
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException
+from typing import Optional
+
+from fastapi import APIRouter, BackgroundTasks, Body, Depends, HTTPException
 from sqlmodel import Session, select
 
+from app import nlp
 from app.db import get_session
-from app.models import Segment, Recording, Contributor
-from app.schemas import SegmentPatch, SegmentOut
+from app.models import Segment, Recording, Contributor, Dialect
+from app.schemas import SegmentPatch, SegmentOut, TranslateIn, TranslationOut
 from app.auth import current_user, require_verifier
+from app.pipeline import reembed_segment
 
 router = APIRouter(prefix="/segments", tags=["segments"])
 
@@ -24,6 +28,7 @@ def get_segment(segment_id: UUID, session: Session = Depends(get_session)):
 def correct_segment(
     segment_id: UUID,
     body: SegmentPatch,
+    background: BackgroundTasks,
     session: Session = Depends(get_session),
     user: Contributor = Depends(current_user),
 ):
@@ -31,12 +36,46 @@ def correct_segment(
     if not seg:
         raise HTTPException(404, "Segment not found")
 
-    for k, v in body.model_dump(exclude_unset=True).items():
+    changes = body.model_dump(exclude_unset=True)
+    for k, v in changes.items():
         setattr(seg, k, v)
     session.add(seg)
     session.commit()
     session.refresh(seg)
+    # Semantic search should find the corrected wording, not the ASR draft.
+    if "corrected_text" in changes and nlp.embeddings_enabled():
+        background.add_task(reembed_segment, seg.id)
     return seg
+
+
+@router.post("/{segment_id}/translate", response_model=TranslationOut)
+def translate_segment(
+    segment_id: UUID,
+    body: Optional[TranslateIn] = Body(default=None),
+    session: Session = Depends(get_session),
+    user: Contributor = Depends(current_user),
+):
+    """Suggests an English translation and Latin transliteration. Nothing is
+    saved: the contributor reviews the suggestion and saves it with PATCH."""
+    if not nlp.translation_enabled():
+        raise HTTPException(503, "AI translation isn't set up on this server (GROQ_API_KEY is missing).")
+    seg = session.get(Segment, segment_id)
+    if not seg:
+        raise HTTPException(404, "Segment not found")
+    source = (body.text if body else None) or seg.corrected_text or seg.asr_text
+    if not (source or "").strip():
+        raise HTTPException(400, "This segment has no text to translate")
+
+    rec = session.get(Recording, seg.recording_id)
+    dialect = session.get(Dialect, rec.dialect_id) if rec and rec.dialect_id else None
+    try:
+        return nlp.translate_text(
+            source,
+            dialect.name if dialect else None,
+            dialect.script if dialect else None,
+        )
+    except nlp.NLPError as e:
+        raise HTTPException(502, str(e))
 
 
 @router.post("/{segment_id}/verify", response_model=SegmentOut)

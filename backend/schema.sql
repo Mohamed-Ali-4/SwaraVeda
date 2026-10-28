@@ -21,6 +21,7 @@ create table if not exists dialects (
   script text,
   endangerment_status text,
   description text,
+  asr_language text,
   created_at timestamptz default now()
 );
 

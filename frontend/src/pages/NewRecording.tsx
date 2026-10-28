@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { HiOutlineMicrophone, HiOutlineStop, HiOutlineUpload } from 'react-icons/hi';
-import api from '../lib/api';
+import api, { errorMessage } from '../lib/api';
 
 interface Dialect {
   id: string;
@@ -111,7 +111,7 @@ export default function NewRecording() {
 
       navigate('/recordings');
     } catch (err: any) {
-      setError(err.response?.data?.detail || 'Upload failed');
+      setError(errorMessage(err, 'Upload failed'));
     } finally {
       setSubmitting(false);
     }
