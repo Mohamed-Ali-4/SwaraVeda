@@ -42,7 +42,8 @@ Full, clickable reference at `/docs`.
 | PATCH | `/segments/{id}` | **The correction endpoint** |
 | POST | `/segments/{id}/translate` | AI translation + transliteration suggestion |
 | POST | `/segments/{id}/verify` | Verifier sign-off |
-| GET | `/search?q=` `/search/semantic?q=` | Keyword / meaning-based search |
+| GET | `/search?q=` `/search/semantic?q=` | Keyword / meaning-based search (public recordings) |
+| GET | `/review/segments?state=` | Passages needing correction or verification, with counts |
 | GET POST | `/tags`, `/tags/{recording_id}/tags` | Tags |
 | GET | `/export/segments?format=jsonl\|csv` | Fine-tuning dataset (verifier) |
 | GET PATCH | `/admin/users` | User roles (admin) |
@@ -55,7 +56,9 @@ Full, clickable reference at `/docs`.
 `POST /recordings/{id}/transcribe` creates a job. Then either:
 
 - **Hosted** (`GROQ_API_KEY` set): the API runs `app/pipeline.py` as a
-  background task — download audio, Whisper large-v3 via Groq (with the
+  background task — download audio, pre-process it (`app/audio.py`: ffmpeg
+  to 16 kHz mono Opus, 80 Hz high-pass, loudness normalisation; nothing is
+  trimmed, so timestamps match the original), Whisper large-v3 via Groq (with the
   dialect's `asr_language` hint), save segments, embed them via Hugging
   Face Inference (`HF_TOKEN`). Nothing is loaded into memory.
 - **Local worker**: `python -m worker.main` (install

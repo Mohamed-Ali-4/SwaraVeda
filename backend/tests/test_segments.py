@@ -10,7 +10,7 @@ def recording_with_segments(client, auth_headers, session: Session):
     dialect_id = resp.json()["id"]
 
     resp = client.post("/recordings", headers=auth_headers, json={
-        "title": "Seg Recording", "dialect_id": dialect_id,
+        "title": "Seg Recording", "dialect_id": dialect_id, "consent_public": True,
     })
     rec_id = UUID(resp.json()["id"])
 

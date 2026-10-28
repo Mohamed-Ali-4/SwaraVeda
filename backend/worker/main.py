@@ -4,6 +4,7 @@ import time
 from pathlib import Path
 from uuid import UUID
 
+from app.audio import prepare_file
 from worker.config import settings
 from worker.audio import download_audio
 from worker.transcriber import transcribe
@@ -28,18 +29,20 @@ def process_job(job: dict):
     logger.info("Processing job %s (recording=%s, kind=%s)", job_id, recording_id, job["kind"])
 
     audio_path: Path | None = None
+    speech_path: Path | None = None
     try:
         update_job_progress(job_id, 5)
         audio_path = download_audio(job["storage_path"], job["audio_url"])
+        speech_path = prepare_file(audio_path, audio_path.parent).path
         update_job_progress(job_id, 15)
 
         logger.info("Starting transcription")
-        segments = transcribe(audio_path)
+        segments = transcribe(speech_path)
         update_job_progress(job_id, 60)
 
         if diarization_available():
             logger.info("Starting diarization")
-            segments = diarize(audio_path, segments)
+            segments = diarize(speech_path, segments)
         update_job_progress(job_id, 75)
 
         logger.info("Saving %d segments", len(segments))
@@ -73,8 +76,9 @@ def process_job(job: dict):
         complete_job(job_id, error=str(e))
 
     finally:
-        if audio_path and audio_path.exists():
-            audio_path.unlink(missing_ok=True)
+        for path in (audio_path, speech_path):
+            if path and path.exists():
+                path.unlink(missing_ok=True)
 
 
 def run():

@@ -10,16 +10,25 @@ from app import nlp
 from app.db import get_session
 from app.models import Segment, Recording, Contributor, Dialect
 from app.schemas import SegmentPatch, SegmentOut, TranslateIn, TranslationOut
-from app.auth import current_user, require_verifier
+from app.auth import current_user, optional_user, require_verifier
 from app.pipeline import reembed_segment
 
 router = APIRouter(prefix="/segments", tags=["segments"])
 
 
 @router.get("/{segment_id}", response_model=SegmentOut)
-def get_segment(segment_id: UUID, session: Session = Depends(get_session)):
+def get_segment(
+    segment_id: UUID,
+    session: Session = Depends(get_session),
+    user: Optional[Contributor] = Depends(optional_user),
+):
+    from app.routers.recordings import _get_visible
     seg = session.get(Segment, segment_id)
     if not seg:
+        raise HTTPException(404, "Segment not found")
+    try:
+        _get_visible(session, seg.recording_id, user)
+    except HTTPException:
         raise HTTPException(404, "Segment not found")
     return seg
 

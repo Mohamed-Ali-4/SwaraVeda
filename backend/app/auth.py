@@ -48,6 +48,23 @@ def current_user(
     return user
 
 
+def optional_user(
+    creds: Optional[HTTPAuthorizationCredentials] = Depends(bearer),
+    session: Session = Depends(get_session),
+) -> Optional[Contributor]:
+    """The signed-in user, or None for anonymous visitors (and stale tokens)."""
+    if creds is None:
+        return None
+    try:
+        return current_user(creds, session)
+    except HTTPException:
+        return None
+
+
+def can_see_private(user: Optional[Contributor]) -> bool:
+    return bool(user and user.role in ("verifier", "admin"))
+
+
 def require_verifier(user: Contributor = Depends(current_user)) -> Contributor:
     if user.role not in ("verifier", "admin"):
         raise HTTPException(status.HTTP_403_FORBIDDEN, "Verifier role required")

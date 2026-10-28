@@ -4,6 +4,7 @@ from typing import Optional, List
 from uuid import UUID
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
+from sqlalchemy import true
 from sqlmodel import Session, select, func
 
 from app.db import get_session
@@ -12,7 +13,7 @@ from app.schemas import (
     RecordingIn, RecordingPatch, RecordingOut, RecordingDetail,
     UploadUrlIn, UploadUrlOut, SegmentOut, JobOut, Page,
 )
-from app.auth import current_user
+from app.auth import can_see_private, current_user, optional_user
 from app.storage import create_signed_upload, public_url
 from app import nlp
 from app.pipeline import run_transcription
@@ -20,6 +21,24 @@ from app.pipeline import run_transcription
 # A job that hasn't reported progress for this long is assumed dead (e.g. the
 # server restarted mid-job) and can be replaced by a new one.
 STALE_JOB_AFTER = timedelta(minutes=15)
+
+
+def visible_to(user: Optional[Contributor]):
+    """Recordings without public-listening consent are shown only to the
+    person who uploaded them, verifiers and admins."""
+    if can_see_private(user):
+        return true()
+    public = Recording.consent_public == True  # noqa: E712
+    return public | (Recording.contributor_id == user.id) if user else public
+
+
+def _get_visible(session: Session, recording_id: UUID, user: Optional[Contributor]) -> Recording:
+    rec = session.get(Recording, recording_id)
+    if not rec or not (
+        rec.consent_public or can_see_private(user) or (user and rec.contributor_id == user.id)
+    ):
+        raise HTTPException(404, "Recording not found")
+    return rec
 
 
 def _latest_job(session: Session, recording_id: UUID) -> Optional[Job]:
@@ -69,11 +88,19 @@ def list_recordings(
     dialect_id: Optional[UUID] = None,
     genre: Optional[str] = None,
     status: Optional[str] = None,
+    q: Optional[str] = Query(None, description="Search titles and speakers"),
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
+    user: Optional[Contributor] = Depends(optional_user),
 ):
-    stmt = select(Recording)
-    count_stmt = select(func.count()).select_from(Recording)
+    visible = visible_to(user)
+    stmt = select(Recording).where(visible)
+    count_stmt = select(func.count()).select_from(Recording).where(visible)
+    if q and q.strip():
+        like = f"%{q.strip()}%"
+        match = Recording.title.ilike(like) | Recording.speaker_name.ilike(like)
+        stmt = stmt.where(match)
+        count_stmt = count_stmt.where(match)
 
     for col, val in (
         (Recording.dialect_id, dialect_id),
@@ -92,10 +119,12 @@ def list_recordings(
 
 
 @router.get("/{recording_id}", response_model=RecordingDetail)
-def get_recording(recording_id: UUID, session: Session = Depends(get_session)):
-    rec = session.get(Recording, recording_id)
-    if not rec:
-        raise HTTPException(404, "Recording not found")
+def get_recording(
+    recording_id: UUID,
+    session: Session = Depends(get_session),
+    user: Optional[Contributor] = Depends(optional_user),
+):
+    rec = _get_visible(session, recording_id, user)
     segments = session.exec(
         select(Segment).where(Segment.recording_id == recording_id).order_by(Segment.seq)
     ).all()
@@ -166,7 +195,12 @@ def transcribe(
 
 
 @router.get("/{recording_id}/segments", response_model=List[SegmentOut])
-def list_segments(recording_id: UUID, session: Session = Depends(get_session)):
+def list_segments(
+    recording_id: UUID,
+    session: Session = Depends(get_session),
+    user: Optional[Contributor] = Depends(optional_user),
+):
+    _get_visible(session, recording_id, user)
     return session.exec(
         select(Segment).where(Segment.recording_id == recording_id).order_by(Segment.seq)
     ).all()

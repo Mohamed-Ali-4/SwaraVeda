@@ -23,10 +23,10 @@ def test_create_recording(client, auth_headers, dialect_id):
 
 def test_list_recordings(client, auth_headers, dialect_id):
     client.post("/recordings", headers=auth_headers, json={
-        "title": "Rec 1", "dialect_id": dialect_id,
+        "title": "Rec 1", "dialect_id": dialect_id, "consent_public": True,
     })
     client.post("/recordings", headers=auth_headers, json={
-        "title": "Rec 2", "dialect_id": dialect_id,
+        "title": "Rec 2", "dialect_id": dialect_id, "consent_public": True,
     })
     resp = client.get("/recordings")
     assert resp.status_code == 200
@@ -38,7 +38,7 @@ def test_list_recordings(client, auth_headers, dialect_id):
 def test_list_recordings_pagination(client, auth_headers, dialect_id):
     for i in range(5):
         client.post("/recordings", headers=auth_headers, json={
-            "title": f"Rec {i}", "dialect_id": dialect_id,
+            "title": f"Rec {i}", "dialect_id": dialect_id, "consent_public": True,
         })
     resp = client.get("/recordings?page=1&page_size=2")
     assert resp.status_code == 200
@@ -47,7 +47,7 @@ def test_list_recordings_pagination(client, auth_headers, dialect_id):
 
 def test_get_recording(client, auth_headers, dialect_id):
     resp = client.post("/recordings", headers=auth_headers, json={
-        "title": "Detail Test", "dialect_id": dialect_id,
+        "title": "Detail Test", "dialect_id": dialect_id, "consent_public": True,
     })
     rec_id = resp.json()["id"]
     resp = client.get(f"/recordings/{rec_id}")

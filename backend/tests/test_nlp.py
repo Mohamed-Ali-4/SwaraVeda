@@ -4,7 +4,7 @@ from uuid import UUID
 import pytest
 from sqlmodel import Session
 
-from app import nlp, pipeline
+from app import audio, nlp, pipeline
 from app.config import settings
 from app.models import Segment
 
@@ -18,12 +18,13 @@ def recording_id(client, auth_headers):
     resp = client.post("/recordings", headers=auth_headers, json={
         "title": "Paddana", "dialect_id": dialect_id,
         "audio_url": "https://example.com/paddana.webm",
+        "consent_public": True,
     })
     return UUID(resp.json()["id"])
 
 
 @pytest.fixture
-def hosted_nlp(monkeypatch, session: Session):
+def hosted_nlp(monkeypatch, session: Session, tmp_path):
     """Turns on hosted NLP with the network calls replaced by fakes."""
     monkeypatch.setattr(settings, "GROQ_API_KEY", "test-key")
 
@@ -32,7 +33,10 @@ def hosted_nlp(monkeypatch, session: Session):
         yield session
 
     monkeypatch.setattr(pipeline, "new_session", shared_session)
-    monkeypatch.setattr(pipeline, "_download", lambda rec: (b"audio", "paddana.webm"))
+    fake = tmp_path / "paddana.ogg"
+    fake.write_bytes(b"audio")
+    monkeypatch.setattr(pipeline, "_prepare_audio",
+                        lambda rec, workdir: audio.Prepared(fake, None, False))
     calls = {}
 
     def fake_transcribe(audio, filename, language=None):
@@ -76,6 +80,41 @@ def test_hosted_transcription_saves_segments(client, auth_headers, recording_id,
     assert detail["latest_job"]["progress"] == 100
     # The dialect's language hint is passed to Whisper.
     assert hosted_nlp["language"] == "kn"
+
+
+@pytest.mark.skipif(not audio.available(), reason="ffmpeg not installed")
+def test_pipeline_preprocesses_real_audio(client, auth_headers, recording_id, session, monkeypatch, tmp_path):
+    """Download → ffmpeg → transcription service, with only the network faked."""
+    import subprocess
+    monkeypatch.setattr(settings, "GROQ_API_KEY", "test-key")
+
+    @contextmanager
+    def shared_session():
+        yield session
+
+    def fake_download(rec, workdir):
+        path = workdir / "field-recording.wav"
+        subprocess.run(["ffmpeg", "-nostdin", "-loglevel", "error", "-f", "lavfi",
+                        "-i", "sine=frequency=300:duration=5", "-ac", "2", str(path)], check=True)
+        return path
+
+    sent = {}
+
+    def fake_transcribe(data, filename, language=None):
+        sent.update(size=len(data), filename=filename)
+        return [{"seq": 1, "start_ms": 0, "end_ms": 5000, "asr_text": "tone"}], None
+
+    monkeypatch.setattr(pipeline, "new_session", shared_session)
+    monkeypatch.setattr(pipeline, "_download", fake_download)
+    monkeypatch.setattr(nlp, "transcribe_audio", fake_transcribe)
+
+    client.post(f"/recordings/{recording_id}/transcribe", headers=auth_headers)
+    detail = client.get(f"/recordings/{recording_id}").json()
+    assert detail["latest_job"]["status"] == "completed", detail["latest_job"]
+    assert sent["filename"] == "field-recording-speech.ogg"
+    assert 0 < sent["size"] < 60_000
+    # Duration comes from the audio itself when the service doesn't report it.
+    assert detail["recording"]["duration_seconds"] == pytest.approx(5.0, abs=0.1)
 
 
 def test_hosted_transcription_failure_is_reported(client, auth_headers, recording_id, hosted_nlp, monkeypatch):

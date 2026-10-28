@@ -2,7 +2,7 @@ from datetime import date, datetime
 from enum import Enum
 from typing import Optional, List
 from uuid import UUID
-from pydantic import BaseModel, ConfigDict, EmailStr
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 
 class RoleEnum(str, Enum):
@@ -45,9 +45,9 @@ class JobStatus(str, Enum):
 # ──── Auth ────
 
 class RegisterIn(BaseModel):
-    display_name: str
+    display_name: str = Field(min_length=1, max_length=80)
     email: EmailStr
-    password: str
+    password: str = Field(min_length=8, max_length=128)
     native_dialect: Optional[str] = None
 
 
@@ -78,7 +78,7 @@ class ProfilePatch(BaseModel):
 
 class ChangePasswordIn(BaseModel):
     current_password: str
-    new_password: str
+    new_password: str = Field(min_length=8, max_length=128)
 
 
 # ──── Dialects ────
@@ -228,6 +228,8 @@ class SearchHit(BaseModel):
     segment_id: UUID
     recording_id: UUID
     recording_title: str
+    audio_url: Optional[str] = None
+    dialect_name: Optional[str] = None
     seq: int
     start_ms: int
     end_ms: int
@@ -278,6 +280,19 @@ class NLPStatus(BaseModel):
     transcription: bool
     translation: bool
     semantic_search: bool
+
+
+class ReviewItem(BaseModel):
+    segment: SegmentOut
+    recording_id: UUID
+    recording_title: str
+    audio_url: Optional[str] = None
+    dialect_name: Optional[str] = None
+
+
+class ReviewQueue(BaseModel):
+    counts: dict[str, int]
+    items: List[ReviewItem]
 
 
 # ──── Admin ────

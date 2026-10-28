@@ -13,7 +13,8 @@ from app.schemas import SearchResult
 router = APIRouter(prefix="/search", tags=["search"])
 
 # Bind parameters use cast(... as type): SQLAlchemy doesn't recognise
-# ":name::type" as a parameter.
+# ":name::type" as a parameter. Search only covers recordings whose speakers
+# agreed to public listening.
 
 
 @router.get("", response_model=SearchResult)
@@ -25,6 +26,7 @@ def search(
 ):
     sql = """
         select s.id as segment_id, s.recording_id, r.title as recording_title,
+               r.audio_url, d.name as dialect_name,
                s.seq, s.start_ms, s.end_ms,
                coalesce(s.corrected_text, s.asr_text) as text,
                ts_rank(
@@ -33,8 +35,10 @@ def search(
                ) as score
         from segments s
         join recordings r on r.id = s.recording_id
+        left join dialects d on d.id = r.dialect_id
         where to_tsvector('simple', coalesce(s.corrected_text, s.asr_text, ''))
               @@ plainto_tsquery('simple', :q)
+          and r.consent_public
           and (cast(:dialect_id as uuid) is null or r.dialect_id = cast(:dialect_id as uuid))
         order by score desc
         limit :limit
@@ -72,12 +76,15 @@ def semantic_search(
 
     sql = """
         select s.id as segment_id, s.recording_id, r.title as recording_title,
+               r.audio_url, d.name as dialect_name,
                s.seq, s.start_ms, s.end_ms,
                coalesce(s.corrected_text, s.asr_text) as text,
                1 - (s.embedding <=> cast(:vec as vector)) as score
         from segments s
         join recordings r on r.id = s.recording_id
+        left join dialects d on d.id = r.dialect_id
         where s.embedding is not null
+          and r.consent_public
           and (cast(:dialect_id as uuid) is null or r.dialect_id = cast(:dialect_id as uuid))
         order by s.embedding <=> cast(:vec as vector)
         limit :limit

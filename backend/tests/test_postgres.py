@@ -64,7 +64,7 @@ def two_recordings(pg_client, headers, pg_engine):
                         ("Kodava", ["wedding song", "valaga dance"])):
         d = pg_client.post("/dialects", headers=headers, json={"name": name}).json()
         r = pg_client.post("/recordings", headers=headers, json={
-            "title": f"{name} recording", "dialect_id": d["id"],
+            "title": f"{name} recording", "dialect_id": d["id"], "consent_public": True,
         }).json()
         with Session(pg_engine) as s:
             for i, w in enumerate(words):
@@ -78,6 +78,9 @@ def two_recordings(pg_client, headers, pg_engine):
 def test_keyword_search(pg_client, two_recordings):
     hits = pg_client.get("/search?q=song").json()["hits"]
     assert {h["text"] for h in hits} == {"paddana harvest song", "wedding song"}
+    # Hits carry what the search page needs to play the passage.
+    assert {h["dialect_name"] for h in hits} == {"Tulu", "Kodava"}
+    assert all("audio_url" in h for h in hits)
 
     hits = pg_client.get(f"/search?q=song&dialect_id={two_recordings['Kodava']}").json()["hits"]
     assert [h["text"] for h in hits] == ["wedding song"]
