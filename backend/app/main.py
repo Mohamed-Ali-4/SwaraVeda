@@ -89,6 +89,17 @@ def health_db():
             tables[model.__tablename__] = "ok"
         except Exception as e:
             tables[model.__tablename__] = clean(e)
+    # Row-level security or missing grants would block inserts but not reads.
+    try:
+        with engine.connect() as conn:
+            trans = conn.begin()
+            conn.execute(text("insert into tags (id, label) values (gen_random_uuid(), :l)"),
+                         {"l": "__health_check__"})
+            trans.rollback()
+        tables["write"] = "ok"
+    except Exception as e:
+        tables["write"] = clean(e)
+
     ok = all(v == "ok" for v in tables.values())
     return {"status": "ok" if ok else "error", "tables": tables, "schema": _schema_drift()}
 
