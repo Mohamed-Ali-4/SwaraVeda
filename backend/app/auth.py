@@ -52,3 +52,19 @@ def require_verifier(user: Contributor = Depends(current_user)) -> Contributor:
     if user.role not in ("verifier", "admin"):
         raise HTTPException(status.HTTP_403_FORBIDDEN, "Verifier role required")
     return user
+
+
+def require_admin(user: Contributor = Depends(current_user)) -> Contributor:
+    if user.role != "admin":
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Admin role required")
+    return user
+
+
+def promote_if_configured_admin(user: Contributor, session: Session) -> None:
+    """Emails in ADMIN_EMAILS become admin on register or login, which is how
+    the first admin is created."""
+    if user.email.lower() in settings.admin_emails and user.role != "admin":
+        user.role = "admin"
+        session.add(user)
+        session.commit()
+        session.refresh(user)

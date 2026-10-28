@@ -6,8 +6,8 @@ from sqlmodel import Session, select, func
 
 from app.db import get_session
 from app.models import Dialect, Contributor
-from app.schemas import DialectIn, DialectOut
-from app.auth import current_user
+from app.schemas import DialectIn, DialectOut, DialectPatch
+from app.auth import current_user, require_verifier
 
 router = APIRouter(prefix="/dialects", tags=["dialects"])
 
@@ -40,6 +40,24 @@ def create_dialect(
     user: Contributor = Depends(current_user),
 ):
     d = Dialect(**body.model_dump())
+    session.add(d)
+    session.commit()
+    session.refresh(d)
+    return d
+
+
+@router.patch("/{dialect_id}", response_model=DialectOut)
+def update_dialect(
+    dialect_id: UUID,
+    body: DialectPatch,
+    session: Session = Depends(get_session),
+    user: Contributor = Depends(require_verifier),
+):
+    d = session.get(Dialect, dialect_id)
+    if not d:
+        raise HTTPException(404, "Dialect not found")
+    for k, v in body.model_dump(exclude_unset=True).items():
+        setattr(d, k, v)
     session.add(d)
     session.commit()
     session.refresh(d)

@@ -10,7 +10,9 @@ from app import migrations, nlp
 from app.config import settings
 from app.db import engine
 from app.models import Contributor, Dialect, Job, Recording, Segment, Tag
-from app.routers import auth_routes, dialects, recordings, segments, search, stats, tags, jobs
+from app.routers import (
+    admin, auth_routes, dialects, export, jobs, recordings, search, segments, stats, tags,
+)
 
 
 @asynccontextmanager
@@ -42,6 +44,8 @@ app.include_router(search.router)
 app.include_router(stats.router)
 app.include_router(tags.router)
 app.include_router(jobs.router)
+app.include_router(admin.router)
+app.include_router(export.router)
 
 
 @app.get("/health", tags=["meta"])
