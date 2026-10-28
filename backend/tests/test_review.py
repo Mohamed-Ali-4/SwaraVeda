@@ -10,7 +10,7 @@ def _recording(client, headers, session, title, segments):
     d = client.post("/dialects", headers=headers, json={"name": f"{title} dialect"}).json()
     rec = client.post("/recordings", headers=headers, json={
         "title": title, "dialect_id": d["id"], "audio_url": f"https://x/{title}.ogg",
-        "speaker_name": "Kamala",
+        "speaker_name": "Kamala", "consent_public": True,
     }).json()
     for i, (asr, corrected, verified) in enumerate(segments):
         session.add(Segment(

@@ -18,6 +18,7 @@ def recording_id(client, auth_headers):
     resp = client.post("/recordings", headers=auth_headers, json={
         "title": "Paddana", "dialect_id": dialect_id,
         "audio_url": "https://example.com/paddana.webm",
+        "consent_public": True,
     })
     return UUID(resp.json()["id"])
 

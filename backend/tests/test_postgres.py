@@ -64,7 +64,7 @@ def two_recordings(pg_client, headers, pg_engine):
                         ("Kodava", ["wedding song", "valaga dance"])):
         d = pg_client.post("/dialects", headers=headers, json={"name": name}).json()
         r = pg_client.post("/recordings", headers=headers, json={
-            "title": f"{name} recording", "dialect_id": d["id"],
+            "title": f"{name} recording", "dialect_id": d["id"], "consent_public": True,
         }).json()
         with Session(pg_engine) as s:
             for i, w in enumerate(words):

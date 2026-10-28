@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, Query
 from sqlmodel import Session, func, select
 
 from app.auth import current_user
+from app.routers.recordings import visible_to
 from app.db import get_session
 from app.models import Contributor, Dialect, Recording, Segment
 from app.schemas import ReviewQueue
@@ -30,7 +31,7 @@ def review_queue(
     user: Contributor = Depends(current_user),
 ):
     def scoped(stmt):
-        stmt = stmt.join(Recording, Recording.id == Segment.recording_id)
+        stmt = stmt.join(Recording, Recording.id == Segment.recording_id).where(visible_to(user))
         return stmt.where(Recording.dialect_id == dialect_id) if dialect_id else stmt
 
     counts = {
