@@ -105,13 +105,16 @@ def _schema_drift() -> dict:
         by_table.setdefault(r["table_name"], {})[r["column_name"]] = r
     for model in (Contributor, Dialect, Recording, Segment, Tag, Job):
         db_cols = by_table.get(model.__tablename__, {})
-        code_cols = set(model.__table__.columns.keys())
+        # segments.embedding is pgvector, written with raw SQL, not on the model.
+        code_cols = set(model.__table__.columns.keys()) | (
+            {"embedding"} if model is Segment else set()
+        )
         extra = {
             name: f"{c['udt_name']}{' not null' if c['is_nullable'] == 'NO' else ''}"
                   f"{' default ' + c['column_default'] if c['column_default'] else ''}"
             for name, c in db_cols.items() if name not in code_cols
         }
-        missing = sorted(code_cols - db_cols.keys())
+        missing = sorted(code_cols - db_cols.keys() - {"embedding"})
         if extra or missing:
             drift[model.__tablename__] = {"extra": extra, "missing": missing}
     return drift
