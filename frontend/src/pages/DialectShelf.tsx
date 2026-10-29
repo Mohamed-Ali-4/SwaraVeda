@@ -63,7 +63,7 @@ export default function DialectShelfPage() {
     return (
       <div className="vs">
         <header className="vs-top">
-          <Link to="/dialects" className="lbl box">Back{'\u00a0/\u00a0'}<span className="hi" lang="hi">वापस</span></Link>
+          <Link to="/" className="lbl box">Back{'\u00a0/\u00a0'}<span className="hi" lang="hi">वापस</span></Link>
           <span className="vs-logo"><Logo /></span>
           <span />
         </header>
@@ -486,11 +486,11 @@ function Shelf({ list }: { list: ShelfDialect[] }) {
     <div className="vs" ref={root} tabIndex={-1}>
       <div className="vs-probe" aria-hidden="true" />
       <header className="vs-top">
-        <Link to="/dialects" className="lbl box">Back{'\u00a0/\u00a0'}<span className="hi" lang="hi">वापस</span></Link>
+        <Link to="/" className="lbl box">Back{'\u00a0/\u00a0'}<span className="hi" lang="hi">वापस</span></Link>
         <Link to="/" className="vs-logo" aria-label="SwaraVeda home"><Logo /></Link>
         <div className="vs-top-r">
           <span className="lbl vs-count">{N} dialects · {zones.length} regions</span>
-          <Link to="/dialects" className="lbl box">List{'\u00a0/\u00a0'}<span className="hi" lang="hi">सूची</span></Link>
+          <Link to="/dialects/list" className="lbl box">List{'\u00a0/\u00a0'}<span className="hi" lang="hi">सूची</span></Link>
         </div>
       </header>
 

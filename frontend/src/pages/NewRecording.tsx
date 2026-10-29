@@ -345,7 +345,7 @@ export default function NewRecording() {
               <input id="rec-title" value={form.title} onChange={setField('title')} required autoFocus className={input} />
             </Field>
             <div className="grid gap-5 sm:grid-cols-2">
-              <Field label="Dialect" htmlFor="rec-dialect" hint={<>Missing? <Link to="/dialects" target="_blank" className="text-saffron-600">Add a dialect</Link>, then reload.</>}>
+              <Field label="Dialect" htmlFor="rec-dialect" hint={<>Missing? <Link to="/dialects/list" target="_blank" className="text-saffron-600">Add a dialect</Link>, then reload.</>}>
                 <select id="rec-dialect" value={form.dialect_id} onChange={setField('dialect_id')} className={input}>
                   <option value="">Not sure</option>
                   {dialects.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
