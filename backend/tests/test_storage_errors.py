@@ -39,3 +39,18 @@ def test_storage_check_reports_ok_and_failure(monkeypatch):
     monkeypatch.setattr(storage, "client", lambda: Boom())
     msg = storage.check()
     assert "Invalid API key" in msg and KEY not in msg
+
+
+def test_storage_error_includes_supabase_reply():
+    import httpx
+
+    request = httpx.Request("POST", "https://abc.supabase.co/storage/v1/object/upload/sign/recordings/x?token=t")
+    response = httpx.Response(400, request=request, text='{"statusCode":"404","message":"Bucket not found"}')
+    try:
+        try:
+            raise httpx.HTTPStatusError("bad", request=request, response=response)
+        except httpx.HTTPStatusError:
+            raise KeyError("error")
+    except KeyError as e:
+        msg = str(storage._explain(e))
+    assert "Bucket not found" in msg and "abc.supabase.co/storage/v1" in msg and "token=" not in msg

@@ -22,6 +22,13 @@ class StorageError(Exception):
 
 def _explain(e: Exception) -> StorageError:
     msg = f"{type(e).__name__}: {e}"
+    # The storage library can fail while reading Supabase's error reply
+    # (e.g. KeyError: 'error'); the reply itself says what is really wrong.
+    cause = e.__context__ or e.__cause__
+    res = getattr(cause, "response", None) or getattr(e, "response", None)
+    if res is not None:
+        url = getattr(getattr(res, "request", None), "url", "")
+        msg += f" | Supabase answered {getattr(res, 'status_code', '?')} for {str(url).split('?')[0]}: {getattr(res, 'text', '')[:200]}"
     if settings.SUPABASE_SERVICE_ROLE_KEY:
         msg = msg.replace(settings.SUPABASE_SERVICE_ROLE_KEY, "***")
     return StorageError(msg[:300])
