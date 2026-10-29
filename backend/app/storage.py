@@ -6,12 +6,22 @@ from app.config import settings
 _client = None
 
 
+def project_url(url: str) -> str:
+    """The bare project address. Supabase's dashboard also shows the REST
+    endpoint (…supabase.co/rest/v1/), which is easy to paste by mistake."""
+    url = url.strip().rstrip("/")
+    for suffix in ("/rest/v1", "/storage/v1", "/auth/v1"):
+        if url.endswith(suffix):
+            url = url[: -len(suffix)]
+    return url
+
+
 def client():
     global _client
     if _client is None:
         if not settings.SUPABASE_URL or not settings.SUPABASE_SERVICE_ROLE_KEY:
             raise RuntimeError("SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set in .env")
-        _client = create_client(settings.SUPABASE_URL, settings.SUPABASE_SERVICE_ROLE_KEY)
+        _client = create_client(project_url(settings.SUPABASE_URL), settings.SUPABASE_SERVICE_ROLE_KEY)
     return _client
 
 

@@ -54,3 +54,9 @@ def test_storage_error_includes_supabase_reply():
     except KeyError as e:
         msg = str(storage._explain(e))
     assert "Bucket not found" in msg and "abc.supabase.co/storage/v1" in msg and "token=" not in msg
+
+
+def test_project_url_strips_api_paths():
+    base = "https://abc.supabase.co"
+    for url in (base, base + "/", base + "/rest/v1/", base + "/rest/v1", " " + base + "/storage/v1/ "):
+        assert storage.project_url(url) == base
