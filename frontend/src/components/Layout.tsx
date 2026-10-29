@@ -5,6 +5,8 @@ import {
   HiOutlineCog, HiOutlineUser, HiOutlineLogout, HiOutlineMenu, HiOutlineX, HiOutlineMicrophone,
 } from 'react-icons/hi';
 import { useAuth } from '../lib/auth';
+import { syncPending, usePendingUploads } from '../lib/offline';
+import { useToast } from '../lib/toast';
 import { initials } from '../lib/format';
 import { ButtonLink, LotusMark } from './ui';
 
@@ -56,6 +58,28 @@ function UserMenu() {
   );
 }
 
+/** Recordings saved while offline: how many are waiting, sent automatically once there's a connection. */
+function PendingUploads() {
+  const { count, busy, online } = usePendingUploads();
+  if (online && !count) return null;
+  const label = !online
+    ? count ? `Offline · ${count} saved` : 'Offline'
+    : busy ? `Uploading ${count}…` : `${count} waiting`;
+  return (
+    <button
+      type="button"
+      onClick={() => online && syncPending()}
+      title={online ? 'Recordings saved on this device. Click to upload now.' : 'No internet. You can still record; it uploads later.'}
+      className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium ${
+        online ? 'bg-saffron-50 text-saffron-700' : 'bg-sunken text-ink-soft'
+      }`}
+    >
+      <span className={`h-2 w-2 rounded-full ${online ? (busy ? 'animate-pulse bg-saffron-500' : 'bg-saffron-500') : 'bg-faint'}`} />
+      {label}
+    </button>
+  );
+}
+
 export default function Layout() {
   const { user, logout } = useAuth();
   const location = useLocation();
@@ -63,6 +87,20 @@ export default function Layout() {
   const isVerifier = user?.role === 'verifier' || user?.role === 'admin';
 
   useEffect(() => setMenuOpen(false), [location.pathname]);
+
+  // Send recordings that were saved while offline, now and whenever the connection returns.
+  const toast = useToast();
+  const toastRef = useRef(toast);
+  toastRef.current = toast;
+  useEffect(() => {
+    if (!user) return;
+    const go = () => syncPending().then((n) => {
+      if (n) toastRef.current.success(`${n} saved ${n === 1 ? 'recording' : 'recordings'} uploaded.`);
+    });
+    go();
+    window.addEventListener('online', go);
+    return () => window.removeEventListener('online', go);
+  }, [user]);
 
   const links = [
     { to: '/recordings', icon: HiOutlineCollection, label: 'Archive' },
@@ -100,9 +138,11 @@ export default function Layout() {
             ))}
           </nav>
 
+          <div className="ml-auto flex items-center md:hidden">{user && <PendingUploads />}</div>
           <div className="ml-auto hidden md:flex items-center gap-2">
             {user ? (
               <>
+                <PendingUploads />
                 <ButtonLink to="/recordings/new" size="sm" icon={<HiOutlineMicrophone className="w-4 h-4" />}>
                   Record
                 </ButtonLink>

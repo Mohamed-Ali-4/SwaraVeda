@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState, type DragEvent, type FormEvent, type ReactNode } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import axios from 'axios';
 import {
   HiOutlineMicrophone, HiOutlineUpload, HiOutlineStop, HiOutlineTrash, HiOutlineCheck,
   HiOutlineArrowLeft, HiOutlineArrowRight, HiOutlineSparkles, HiOutlineGlobe, HiOutlineChip,
 } from 'react-icons/hi';
-import api, { errorMessage } from '../lib/api';
+import { errorMessage } from '../lib/api';
+import { isOffline, savePending, sendRecording } from '../lib/offline';
 import { useDialects } from '../lib/dialects';
 import { capitalize, clock } from '../lib/format';
 import { input } from '../lib/styles';
@@ -220,30 +220,31 @@ export default function NewRecording() {
     if (!source) return;
     setError('');
     setProgress(0);
+    const item = {
+      blob: source.blob, name: source.name, type: source.type, seconds: source.seconds,
+      details: Object.fromEntries(Object.entries(form).filter(([, v]) => v.trim())),
+      consentPublic, consentAi, transcribe: autoTranscribe,
+    };
+    const keepForLater = async () => {
+      await savePending({ ...item, savedAt: new Date().toISOString() });
+      toast.success('No internet, so the recording is saved on this device. It uploads by itself when you’re back online.');
+      navigate('/recordings');
+    };
     try {
-      setStage('Preparing upload…');
-      const { data } = await api.post('/recordings/upload-url', { filename: source.name, content_type: source.type });
+      if (!navigator.onLine) return await keepForLater();
       setStage('Uploading audio…');
-      await axios.put(data.upload_url, source.blob, {
-        headers: { 'Content-Type': source.type || 'application/octet-stream', 'x-upsert': 'true' },
-        onUploadProgress: (ev) => setProgress(ev.total ? ev.loaded / ev.total : null),
-      });
-      setStage('Saving details…');
-      const body = Object.fromEntries(Object.entries(form).filter(([, v]) => v.trim()));
-      const rec = (await api.post('/recordings', {
-        ...body,
-        storage_path: data.storage_path,
-        duration_seconds: source.seconds ?? undefined,
-        consent_public: consentPublic,
-        consent_ai_training: consentAi,
-      })).data;
-      if (autoTranscribe) {
-        await api.post(`/recordings/${rec.id}/transcribe`).catch(() =>
-          toast.error('Saved, but transcription didn’t start. Use “Transcribe” on the recording page.'));
-      }
-      toast.success(autoTranscribe ? 'Uploaded. Transcription has started.' : 'Recording uploaded.');
+      const rec = await sendRecording(item, setProgress);
+      if (autoTranscribe && !rec.transcribing) toast.error('Saved, but transcription didn’t start. Use “Transcribe” on the recording page.');
+      toast.success(autoTranscribe && rec.transcribing ? 'Uploaded. Transcription has started.' : 'Recording uploaded.');
       navigate(`/recordings/${rec.id}`);
     } catch (err) {
+      if (isOffline(err)) {
+        try {
+          return await keepForLater();
+        } catch {
+          /* no space or no storage: fall through to the error */
+        }
+      }
       setError(errorMessage(err, 'Upload failed'));
       setProgress(null);
     }

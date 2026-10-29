@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import api from './api';
+import { safeLocal } from './storage';
 import type { Dialect } from './types';
 
 let cache: Promise<Dialect[]> | null = null;
@@ -8,10 +9,20 @@ let cache: Promise<Dialect[]> | null = null;
 export function useDialects() {
   const [dialects, setDialects] = useState<Dialect[]>([]);
   useEffect(() => {
-    cache ??= api.get('/dialects', { params: { page_size: 200 } }).then((r) => r.data).catch(() => {
-      cache = null;
-      return [];
-    });
+    cache ??= api.get('/dialects', { params: { page_size: 200 } })
+      .then((r) => {
+        safeLocal.set('dialects', JSON.stringify(r.data));
+        return r.data;
+      })
+      .catch(() => {
+        cache = null;
+        // Offline: the list from the last visit still lets you tag a recording.
+        try {
+          return JSON.parse(safeLocal.get('dialects') || '[]');
+        } catch {
+          return [];
+        }
+      });
     cache.then(setDialects);
   }, []);
   const reload = useCallback(async () => {

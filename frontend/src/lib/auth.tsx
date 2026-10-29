@@ -30,11 +30,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [token, setToken] = useState<string | null>(safeLocal.get('token'));
   const [loading, setLoading] = useState(true);
 
+  const remember = (u: User) => {
+    safeLocal.set('user', JSON.stringify(u));
+    setUser(u);
+  };
+
   useEffect(() => {
     if (token) {
       api.get('/auth/me')
-        .then((res) => setUser(res.data))
-        .catch(() => {
+        .then((res) => remember(res.data))
+        .catch((err) => {
+          // No connection: carry on as the user we last saw, so recording works offline.
+          const cached = !err?.response && safeLocal.get('user');
+          if (cached) return setUser(JSON.parse(cached));
           safeLocal.remove('token');
           setToken(null);
         })
@@ -49,7 +57,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const adopt = async (access_token: string) => {
     safeLocal.set('token', access_token);
     const me = await api.get('/auth/me');
-    setUser(me.data);
+    remember(me.data);
     setToken(access_token);
   };
 
@@ -70,11 +78,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const refreshUser = async () => {
     const res = await api.get('/auth/me');
-    setUser(res.data);
+    remember(res.data);
   };
 
   const logout = () => {
     safeLocal.remove('token');
+    safeLocal.remove('user');
     setToken(null);
     setUser(null);
   };
