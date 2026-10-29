@@ -51,22 +51,20 @@ export default function BrandLogo({ size = 'lg', tagline = true, onAccent }: {
   const measure = useRef<HTMLSpanElement>(null);
   const wave = useRef<SVGGElement>(null);
 
-  const [paused, setPaused] = useState(false);
   const show = (n: number) => {
     if (n === i) return;
     setPrev(i);
     setI(n);
   };
 
-  // Next script every second; pointing at the logo holds the current one.
+  // Next script every second, always (with reduced motion it still changes, just without the animation).
   useEffect(() => {
-    if (paused || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     const t = window.setTimeout(() => {
       setPrev(i);
       setI((i + 1) % SWARA.length);
     }, HOLD_MS);
     return () => window.clearTimeout(t);
-  }, [i, paused]);
+  }, [i]);
 
   useEffect(() => onAccent?.(SWARA[i].color), [i, onAccent]);
 
@@ -128,34 +126,8 @@ export default function BrandLogo({ size = 'lg', tagline = true, onAccent }: {
           className="pointer-events-none absolute left-1/2 top-1/2 h-40 w-[28rem] max-w-full -translate-x-1/2 -translate-y-1/2 rounded-full opacity-30 blur-[70px]"
           style={{ background: 'var(--sv)' }}
         />
-        <svg
-          className="absolute inset-x-0 top-1/2 -translate-y-1/2 w-full pointer-events-none"
-          viewBox="0 0 600 110"
-          preserveAspectRatio="none"
-          aria-hidden="true"
-          style={{ height: big ? '7.5rem' : '4.5rem' }}
-        >
-          <defs>
-            <linearGradient id="sv-line" x1="0" x2="1">
-              <stop offset="0%" className="sv-stop" stopOpacity="0" />
-              <stop offset="20%" className="sv-stop" />
-              <stop offset="50%" stopColor="#ffffff" stopOpacity=".55" />
-              <stop offset="80%" className="sv-stop" />
-              <stop offset="100%" className="sv-stop" stopOpacity="0" />
-            </linearGradient>
-          </defs>
-          <line x1="0" y1="55" x2="600" y2="55" stroke="url(#sv-line)" strokeWidth="1.6" />
-          <g transform="translate(0 55)">
-            <g ref={wave} style={{ transformOrigin: '0 0' }}>
-              <Burst x={150} delay={0} />
-              <Burst x={460} delay={0.4} />
-            </g>
-          </g>
-        </svg>
 
         <h1
-          onMouseEnter={() => setPaused(true)}
-          onMouseLeave={() => setPaused(false)}
           onClick={() => show((i + 1) % SWARA.length)}
           title="Click for the next language"
           className={`relative flex cursor-pointer items-baseline justify-center gap-[0.22em] font-extrabold tracking-tight text-white ${
@@ -174,16 +146,6 @@ export default function BrandLogo({ size = 'lg', tagline = true, onAccent }: {
               className="sv-flash pointer-events-none absolute left-1/2 top-1/2 h-[1.8em] w-[1.8em] -translate-x-1/2 -translate-y-1/2 rounded-full"
               style={{ background: `radial-gradient(circle, ${swara.color}66 0%, transparent 65%)` }}
             />
-            {prev !== null && (
-              <span
-                key={`out-${prev}-${i}`}
-                className="sv-out whitespace-nowrap"
-                style={{ gridArea: '1 / 1', fontFamily: `'${SWARA[prev].font}', Nunito, sans-serif`, color: SWARA[prev].color }}
-                onAnimationEnd={() => setPrev(null)}
-              >
-                {SWARA[prev].text}
-              </span>
-            )}
             <span
               key={`in-${i}`}
               lang={swara.lang}
@@ -200,6 +162,30 @@ export default function BrandLogo({ size = 'lg', tagline = true, onAccent }: {
           </span>
           <span aria-hidden="true" style={{ textShadow: '0 0 30px rgba(255,255,255,.18)' }}>Veda</span>
         </h1>
+
+        <svg
+          className="relative mx-auto mt-1 block w-full max-w-[26rem] pointer-events-none"
+          viewBox="0 0 600 110"
+          preserveAspectRatio="none"
+          aria-hidden="true"
+          style={{ height: big ? '3.2rem' : '2.2rem' }}
+        >
+          <defs>
+            <linearGradient id="sv-line" x1="0" x2="1">
+              <stop offset="0%" className="sv-stop" stopOpacity="0" />
+              <stop offset="20%" className="sv-stop" />
+              <stop offset="50%" stopColor="#ffffff" stopOpacity=".55" />
+              <stop offset="80%" className="sv-stop" />
+              <stop offset="100%" className="sv-stop" stopOpacity="0" />
+            </linearGradient>
+          </defs>
+          <line x1="0" y1="55" x2="600" y2="55" stroke="url(#sv-line)" strokeWidth="1.6" />
+          <g transform="translate(0 55)">
+            <g ref={wave} style={{ transformOrigin: '0 0' }}>
+              <Burst x={300} delay={0} />
+            </g>
+          </g>
+        </svg>
 
         {/* Hidden copies of every script, only to measure their widths. */}
         <span
@@ -225,8 +211,6 @@ export default function BrandLogo({ size = 'lg', tagline = true, onAccent }: {
               key={s.lang}
               type="button"
               onClick={() => show(n)}
-              onMouseEnter={() => setPaused(true)}
-              onMouseLeave={() => setPaused(false)}
               aria-label={`Show Swara in ${s.name}`}
               className="group flex h-4 items-center px-[3px]"
             >
