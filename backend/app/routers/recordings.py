@@ -14,7 +14,7 @@ from app.schemas import (
     UploadUrlIn, UploadUrlOut, SegmentOut, JobOut, Page,
 )
 from app.auth import can_see_private, current_user, optional_user
-from app.storage import create_signed_upload, public_url
+from app.storage import StorageError, create_signed_upload, public_url
 from app import nlp
 from app.pipeline import run_transcription
 
@@ -62,7 +62,10 @@ router = APIRouter(prefix="/recordings", tags=["recordings"])
 def upload_url(body: UploadUrlIn, user: Contributor = Depends(current_user)):
     ext = body.filename.rsplit(".", 1)[-1] if "." in body.filename else "webm"
     path = f"{user.id}/{uuidlib.uuid4()}.{ext}"
-    signed = create_signed_upload(path)
+    try:
+        signed = create_signed_upload(path)
+    except StorageError as e:
+        raise HTTPException(502, f"Audio storage isn't reachable, so the upload can't start. {e}")
     return UploadUrlOut(upload_url=signed["url"], storage_path=path, token=signed.get("token"))
 
 
@@ -74,7 +77,10 @@ def create_recording(
 ):
     data = body.model_dump()
     if data.get("storage_path") and not data.get("audio_url"):
-        data["audio_url"] = public_url(data["storage_path"])
+        try:
+            data["audio_url"] = public_url(data["storage_path"])
+        except StorageError as e:
+            raise HTTPException(502, f"Audio storage isn't reachable. {e}")
     rec = Recording(**data, contributor_id=user.id)
     session.add(rec)
     session.commit()

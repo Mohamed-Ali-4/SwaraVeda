@@ -187,7 +187,7 @@ export default function Cover() {
       <VoiceField color={accent} />
       <div aria-hidden="true" className="pointer-events-none absolute -left-40 -top-40 h-[34rem] w-[34rem] rounded-full blur-[120px] transition-colors duration-700" style={{ background: `${accent}2e` }} />
       <div aria-hidden="true" className="pointer-events-none absolute -bottom-48 -right-32 h-[36rem] w-[36rem] rounded-full bg-[#2EE6C5]/10 blur-[130px]" />
-      <div aria-hidden="true" className="pointer-events-none absolute inset-0 select-none">
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0 hidden select-none md:block">
         {FLOATING.map((f, n) => (
           <span key={n} className="cv-word absolute whitespace-nowrap text-white/[0.07]"
             style={{ left: `${f.x}%`, top: `${f.y}%`, fontSize: f.size, fontFamily: `"${f.font}", sans-serif`, fontWeight: 600,

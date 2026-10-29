@@ -7,7 +7,7 @@ import { useDialects } from '../lib/dialects';
 import { input } from '../lib/styles';
 import { useToast } from '../lib/toast';
 import type { Dialect } from '../lib/types';
-import { Alert, Button, ButtonLink, Card, EmptyState, Field, PageHeader } from '../components/ui';
+import { Alert, Button, ButtonLink, Card, EmptyState, Field, PageHeader, PageSpinner } from '../components/ui';
 
 // UNESCO's scale, from least to most endangered.
 const endangerment: { value: string; className: string; level: number }[] = [
@@ -55,7 +55,7 @@ function DangerScale({ status }: { status?: string }) {
 export default function Dialects() {
   const { user } = useAuth();
   const toast = useToast();
-  const { dialects, reload } = useDialects();
+  const { dialects, reload, loading } = useDialects();
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [error, setError] = useState('');
@@ -178,7 +178,9 @@ export default function Dialects() {
         </p>
       )}
 
-      {dialects.length === 0 ? (
+      {loading && dialects.length === 0 ? (
+        <PageSpinner />
+      ) : dialects.length === 0 ? (
         <EmptyState icon={<HiOutlineGlobeAlt className="w-7 h-7" />} title="No dialects yet">
           {user ? 'Add the first one: the dialect you speak, or the one you’re recording.' : 'Sign in to add the first dialect.'}
         </EmptyState>
