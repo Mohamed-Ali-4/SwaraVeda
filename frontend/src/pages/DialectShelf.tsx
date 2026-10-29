@@ -105,6 +105,8 @@ function Shelf({ list }: { list: ShelfDialect[] }) {
     const blobs = Array.from(el.querySelectorAll<SVGCircleElement>('.vs-blob'));
     const hidden = new Array<boolean>(TOTAL).fill(false);
     const lift = new Array<number>(TOTAL).fill(0);
+    // Last values written per tape, so a tape that hasn't moved costs nothing.
+    const drawn = new Array<string>(TOTAL).fill('');
 
     // Start on the dialect last looked at, else the user's own, else the first.
     const last = safeSession.get('vs-last');
@@ -142,11 +144,13 @@ function Shelf({ list }: { list: ShelfDialect[] }) {
       stage.style.setProperty('--h', `${H}px`);
       stage.style.setProperty('--ws', `${ws}px`);
       stage.style.setProperty('--d', `${d}px`);
+      drawn.fill('');
       play.style.left = `${W / 2 - 0.5 * d - 6}px`;
       play.style.top = `${VH / 2 + 0.36 * H}px`;
       placeIndicator();
     };
-    const F = (r: number) => r * (ws + gap) + (d - ws + 1.6 * gap) * bump(r);
+    // The open cover is tilted, so neighbours make a little extra room for its corners.
+    const F = (r: number) => r * (ws + gap) + (d - ws + 3.6 * gap) * bump(r);
     const rel = (v: number) => {
       let r = mod(v - s, TOTAL);
       if (r >= TOTAL / 2) r -= TOTAL;
@@ -310,16 +314,23 @@ function Shelf({ list }: { list: ShelfDialect[] }) {
         if (hidden[v]) {
           t.style.visibility = '';
           hidden[v] = false;
+          drawn[v] = '';
         }
         lift[v] += ((hover === v && Math.abs(r) > 0.5 && !isOpen ? 1 : 0) - lift[v]) * lk;
         const o = smooth(Math.max(0, 1 - Math.abs(r)));
         const y = -o * 0.025 * H - lift[v] * 0.045 * H;
-        t.style.transform =
-          `translate3d(${x.toFixed(2)}px,${y.toFixed(2)}px,${(o * 0.2 * H).toFixed(2)}px) ` +
-          `rotateZ(${(-4.5 * o).toFixed(3)}deg) rotateX(${(tiltX * o).toFixed(3)}deg) rotateY(${(-90 * o + tiltY * o).toFixed(3)}deg)`;
+        const tf =
+          `translate3d(${x.toFixed(1)}px,${y.toFixed(1)}px,${(o * 0.2 * H).toFixed(1)}px) ` +
+          `rotateZ(${(-4.5 * o).toFixed(2)}deg) rotateX(${(tiltX * o).toFixed(2)}deg) rotateY(${(-90 * o + tiltY * o).toFixed(2)}deg)`;
+        if (tf === drawn[v]) continue;
+        drawn[v] = tf;
+        t.style.transform = tf;
         t.style.zIndex = String(Math.round(100 - Math.abs(r) * 4));
-        faces[v].sp.style.setProperty('--shade', (o * 0.55).toFixed(3));
-        faces[v].cv.style.setProperty('--shade', ((1 - o) * 0.5).toFixed(3));
+        faces[v].sp.style.setProperty('--shade', (o * 0.55).toFixed(2));
+        faces[v].cv.style.setProperty('--shade', ((1 - o) * 0.5).toFixed(2));
+        // A closed tape shows only its spine: its side would just be a sliver of squashed cover art.
+        faces[v].cv.style.visibility = o > 0.02 ? '' : 'hidden';
+        faces[v].sp.style.visibility = o < 0.98 ? '' : 'hidden';
       }
 
       const ps = isOpen ? 0 : smooth(Math.max(0, 1 - Math.abs(T - s) * 3));

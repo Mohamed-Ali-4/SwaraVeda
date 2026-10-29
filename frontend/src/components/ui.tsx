@@ -6,12 +6,12 @@ type Variant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'ai' | 'verify';
 type Size = 'sm' | 'md' | 'lg';
 
 const variants: Record<Variant, string> = {
-  primary: 'bg-saffron-600 text-white hover:bg-saffron-700 shadow-sm',
-  secondary: 'bg-surface text-ink border border-line-strong hover:bg-sunken',
+  primary: 'bg-saffron-600 text-white hover:bg-saffron-700',
+  secondary: 'bg-transparent text-ink border border-ink/85 hover:bg-ink hover:text-paper',
   ghost: 'text-ink-soft hover:bg-sunken',
   danger: 'bg-surface text-danger-600 border border-danger-600/30 hover:bg-danger-50',
   ai: 'bg-lotus-50 text-lotus-600 border border-lotus-100 hover:bg-lotus-100',
-  verify: 'bg-leaf-600 text-white hover:bg-leaf-700 shadow-sm',
+  verify: 'bg-leaf-600 text-white hover:bg-leaf-700',
 };
 const sizes: Record<Size, string> = {
   sm: 'text-sm px-3 py-1.5 gap-1.5',
@@ -20,7 +20,7 @@ const sizes: Record<Size, string> = {
 };
 
 function buttonClass(variant: Variant, size: Size, extra = '') {
-  return `inline-flex items-center justify-center rounded-lg font-medium transition-colors no-underline
+  return `inline-flex items-center justify-center rounded-md font-semibold tracking-[0.01em] transition-[color,background-color,border-color,transform] duration-300 active:scale-[.98] no-underline
     disabled:opacity-50 ${variants[variant]} ${sizes[size]} ${extra}`;
 }
 
@@ -96,7 +96,7 @@ const statusStyle: Record<string, { label: string; className: string; dot: strin
 export function StatusBadge({ status }: { status: string }) {
   const s = statusStyle[status] ?? { label: status, className: 'bg-sunken text-muted', dot: 'bg-faint' };
   return (
-    <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium whitespace-nowrap ${s.className}`}>
+    <span className={`lbl inline-flex items-center gap-1.5 rounded-sm px-2 py-1 whitespace-nowrap ${s.className}`}>
       <span className={`w-1.5 h-1.5 rounded-full ${s.dot}`} />
       {s.label}
     </span>
@@ -104,20 +104,20 @@ export function StatusBadge({ status }: { status: string }) {
 }
 
 export function Chip({ children, className = 'bg-sunken text-ink-soft' }: { children: ReactNode; className?: string }) {
-  return <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium ${className}`}>{children}</span>;
+  return <span className={`inline-flex items-center gap-1 rounded-sm border border-line px-2 py-0.5 text-xs font-medium ${className}`}>{children}</span>;
 }
 
 export function PageHeader({ title, subtitle, actions, eyebrow }: {
   title: ReactNode; subtitle?: ReactNode; actions?: ReactNode; eyebrow?: ReactNode;
 }) {
   return (
-    <div className="flex flex-wrap items-end justify-between gap-4 mb-8">
+    <div className="mb-10 flex flex-wrap items-end justify-between gap-4 border-b border-ink/85 pb-6">
       <div className="min-w-0 max-w-2xl">
-        {eyebrow && <p className="text-xs font-medium uppercase tracking-[0.08em] text-saffron-600 mb-2">{eyebrow}</p>}
-        <h1 className="text-3xl sm:text-[2.1rem] font-bold text-ink">{title}</h1>
-        {subtitle && <p className="mt-2 text-muted text-[15px] leading-relaxed">{subtitle}</p>}
+        {eyebrow && <p className="rise lbl mb-4 inline-flex h-[21px] items-center border border-saffron-600 px-2 text-saffron-600">{eyebrow}</p>}
+        <h1 className="rise rise-2 text-[2.6rem] font-normal leading-none tracking-[-0.025em] text-ink sm:text-[3.4rem]">{title}</h1>
+        {subtitle && <p className="rise rise-3 mt-4 max-w-[60ch] font-display text-[17px] leading-relaxed text-ink-soft">{subtitle}</p>}
       </div>
-      {actions && <div className="flex flex-wrap gap-2">{actions}</div>}
+      {actions && <div className="rise rise-3 flex flex-wrap gap-2">{actions}</div>}
     </div>
   );
 }
@@ -126,9 +126,9 @@ export function EmptyState({ icon, title, children, action }: {
   icon: ReactNode; title: string; children?: ReactNode; action?: ReactNode;
 }) {
   return (
-    <div className="rounded-card border border-dashed border-line-strong bg-surface/60 px-6 py-14 text-center">
-      <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-saffron-50 text-saffron-600">{icon}</div>
-      <h3 className="text-lg font-semibold text-ink">{title}</h3>
+    <div className="rise rounded-card border border-dashed border-line-strong bg-surface/60 px-6 py-14 text-center">
+      <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full border border-saffron-600 text-saffron-600">{icon}</div>
+      <h3 className="font-display text-2xl font-normal text-ink">{title}</h3>
       {children && <div className="mx-auto mt-1.5 max-w-md text-[15px] text-muted">{children}</div>}
       {action && <div className="mt-6 flex justify-center gap-2">{action}</div>}
     </div>

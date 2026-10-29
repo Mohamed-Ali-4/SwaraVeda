@@ -67,11 +67,13 @@ export default function Review() {
       />
 
       <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap gap-1 rounded-lg bg-sunken p-1" role="tablist">
+        <div className="flex flex-wrap pl-px" role="tablist">
           {tabs.map((t) => (
             <button key={t.key} role="tab" aria-selected={state === t.key} onClick={() => set({ state: t.key })}
-              className={`rounded-md px-3 py-1.5 text-sm ${state === t.key ? 'bg-surface font-medium text-ink shadow-sm' : 'text-muted hover:text-ink'}`}>
-              {t.label}{counts && <span className="ml-1.5 tabular text-faint">{counts[t.key]}</span>}
+              className={`lbl -ml-px flex h-[27px] items-center border px-3 transition-colors duration-500 ${
+                state === t.key ? 'relative z-10 border-saffron-600 bg-saffron-600 text-white' : 'border-ink/85 text-ink hover:bg-ink hover:text-paper'
+              }`}>
+              {t.label}{counts && <span className="ml-1.5 tabular opacity-70">{counts[t.key]}</span>}
             </button>
           ))}
         </div>
