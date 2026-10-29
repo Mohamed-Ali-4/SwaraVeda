@@ -160,6 +160,41 @@ function ReferenceRecording() {
   const [saving, setSaving] = useState(false);
   const set = (k: keyof typeof empty) => (e: { target: { value: string } }) => setForm({ ...form, [k]: e.target.value });
 
+  interface Found { title: string; audio_url: string; page_url?: string; licence: string; open_licence: boolean; author: string; description: string; word?: string | null; already_added: boolean }
+  const [found, setFound] = useState<Found[] | null>(null);
+  const [searching, setSearching] = useState(false);
+  const search = async () => {
+    if (!form.dialect_id) return toast.error('Choose a dialect first.');
+    setSearching(true);
+    setFound(null);
+    try {
+      setFound((await api.get('/references/commons', { params: { dialect_id: form.dialect_id } })).data.results);
+    } catch (err) {
+      toast.error(errorMessage(err, 'Could not search Wikimedia Commons'));
+    } finally {
+      setSearching(false);
+    }
+  };
+  const addFound = async (f: Found) => {
+    try {
+      await api.post('/recordings', {
+        title: f.word ? `\u201c${f.word}\u201d \u2014 spoken word` : f.title,
+        dialect_id: form.dialect_id,
+        audio_url: f.audio_url,
+        speaker_name: f.author || undefined,
+        genre: f.word ? 'other' : 'song',
+        licence: f.licence,
+        consent_public: true,
+        consent_ai_training: TRAINABLE.has(f.licence) || /^(cc by|cc0|public domain)/i.test(f.licence) && !/nc|nd/i.test(f.licence),
+        notes: `Reference recording. Source: Wikimedia Commons${f.author ? `, by ${f.author}` : ''}${f.page_url ? ` (${f.page_url})` : ''}. Licence: ${f.licence}.${f.description ? ` ${f.description}` : ''}`,
+      });
+      setFound((list) => list && list.map((x) => (x.audio_url === f.audio_url ? { ...x, already_added: true } : x)));
+      toast.success('Added. It now plays on the dialect\u2019s tape.');
+    } catch (err) {
+      toast.error(errorMessage(err, 'Could not add the recording'));
+    }
+  };
+
   const submit = async (e: FormEvent) => {
     e.preventDefault();
     setSaving(true);
@@ -198,7 +233,44 @@ function ReferenceRecording() {
           </p>
         </div>
       </div>
-      <form onSubmit={submit} className="mt-6 grid gap-4 sm:grid-cols-2">
+      <div className="mt-6 border border-line bg-paper/60 p-4">
+        <div className="flex flex-wrap items-end gap-3">
+          <div className="min-w-[14rem] flex-1">
+            <Field label="Find on Wikimedia Commons" htmlFor="ref-find">
+              <select id="ref-find" value={form.dialect_id} onChange={set('dialect_id')} className={input}>
+                <option value="">Choose a dialect</option>
+                {dialects.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
+              </select>
+            </Field>
+          </div>
+          <Button type="button" variant="secondary" loading={searching} onClick={search}>Search</Button>
+        </div>
+        <p className="mt-2 text-[13px] text-muted">Finds audio of this dialect on Wikimedia Commons, including words spoken by native speakers on Lingua Libre. Listen first; add only what is really this dialect.</p>
+        {found && (found.length === 0 ? (
+          <p className="mt-4 text-sm text-ink-soft">Nothing on Commons for this dialect yet. Try another name, or add a link below.</p>
+        ) : (
+          <ul className="mt-4 divide-y divide-line">
+            {found.map((f) => (
+              <li key={f.audio_url} className="grid gap-2 py-3 sm:grid-cols-[1fr_auto] sm:items-center">
+                <div className="min-w-0">
+                  <p className="truncate font-medium text-ink">{f.word ? `\u201c${f.word}\u201d (spoken word)` : f.title}</p>
+                  <p className="truncate text-[13px] text-muted">
+                    {f.author || 'Unknown author'} · <span className={f.open_licence ? 'text-leaf-700' : 'text-danger-600'}>{f.licence || 'No licence'}</span>
+                    {f.page_url && <> · <a href={f.page_url} target="_blank" rel="noreferrer" className="text-saffron-600">source ↗</a></>}
+                  </p>
+                  <audio controls preload="none" src={f.audio_url} className="mt-2 h-8 w-full max-w-sm" />
+                </div>
+                <Button type="button" size="sm" variant={f.already_added ? 'ghost' : 'primary'} disabled={f.already_added || !f.open_licence}
+                  title={f.open_licence ? '' : 'Not openly licensed, so it can\u2019t be copied into the archive'} onClick={() => addFound(f)}>
+                  {f.already_added ? 'Added' : f.open_licence ? 'Add' : 'Not open licence'}
+                </Button>
+              </li>
+            ))}
+          </ul>
+        ))}
+      </div>
+      <p className="lbl mt-6 text-muted">Or add any open recording by its link</p>
+      <form onSubmit={submit} className="mt-3 grid gap-4 sm:grid-cols-2">
         <Field label="Title" htmlFor="ref-title"><input id="ref-title" required value={form.title} onChange={set('title')} className={input} placeholder="e.g. Koti Chennaya paddana" /></Field>
         <Field label="Dialect" htmlFor="ref-dialect">
           <select id="ref-dialect" required value={form.dialect_id} onChange={set('dialect_id')} className={input}>
