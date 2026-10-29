@@ -54,7 +54,10 @@ def _embed_query(q: str) -> list[float]:
         try:
             return nlp.embed_texts([q])[0]
         except nlp.NLPError as e:
-            raise HTTPException(503, f"Semantic search is unavailable right now: {e}")
+            if "402" in str(e):
+                raise HTTPException(503, "Search by meaning is paused: the embedding service has used up its free credits. "
+                                         "Exact-word search still works.")
+            raise HTTPException(503, f"Search by meaning is unavailable right now: {e}")
     try:
         from sentence_transformers import SentenceTransformer
     except ImportError:

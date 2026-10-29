@@ -103,7 +103,10 @@ def health_db():
         tables["write"] = clean(e)
 
     ok = all(v == "ok" for v in tables.values())
-    return {"status": "ok" if ok else "error", "tables": tables, "schema": _schema_drift()}
+    from app import storage
+    store = storage.check()
+    return {"status": "ok" if ok else "error", "tables": tables, "storage": store,
+            "schema": _schema_drift()}
 
 
 def _schema_drift() -> dict:
