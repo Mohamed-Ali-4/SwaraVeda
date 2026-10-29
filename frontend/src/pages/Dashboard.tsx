@@ -8,7 +8,10 @@ import api from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { useDialects } from '../lib/dialects';
 import type { Recording } from '../lib/types';
-import { ButtonLink, Card, LotusMark } from '../components/ui';
+import { ButtonLink, Card } from '../components/ui';
+import { Spine } from '../components/TapeArt';
+import { toShelf } from '../lib/dialectInfo';
+import type { Dialect } from '../lib/types';
 import RecordingCard from '../components/RecordingCard';
 
 interface Stats {
@@ -75,6 +78,25 @@ function hours(seconds: number) {
   return h >= 10 ? Math.round(h).toString() : h >= 1 ? h.toFixed(1) : `${Math.round(seconds / 60)} min`;
 }
 
+/** A row of tape spines from the dialect shelf; each one rises when pointed at. */
+function MiniShelf({ dialects }: { dialects: Dialect[] }) {
+  const spines = toShelf(dialects).slice(0, 18);
+  return (
+    <Link to="/dialects" aria-label="Open the dialect shelf" className="mt-8 flex h-[260px] items-end gap-[5px] overflow-hidden pb-2 no-underline">
+      {spines.map((d, i) => (
+        <span
+          key={d.id}
+          title={d.name}
+          className="rise h-[240px] w-[41px] shrink-0 overflow-hidden rounded-[2px] shadow-[0_18px_30px_-20px_rgba(20,16,10,.6)] transition-transform duration-500 ease-[cubic-bezier(.2,.8,.2,1)] hover:-translate-y-3 [&_svg]:block [&_svg]:h-full [&_svg]:w-full"
+          style={{ animationDelay: `${i * 35}ms` }}
+        >
+          <Spine d={d} />
+        </span>
+      ))}
+    </Link>
+  );
+}
+
 export default function Dashboard() {
   const { user } = useAuth();
   const { dialects, nameOf } = useDialects();
@@ -101,19 +123,18 @@ export default function Dashboard() {
     <div className="space-y-20">
       <section className="grid items-center gap-12 lg:grid-cols-[1.1fr_1fr]">
         <div>
-          <p className="mb-4 inline-flex items-center gap-2 rounded-full border border-saffron-100 bg-saffron-50 px-3 py-1 text-sm font-medium text-saffron-700">
-            <LotusMark className="w-4 h-4" />
+          <p className="rise lbl mb-6 inline-flex h-[21px] items-center border border-saffron-600 px-2 text-saffron-600">
             {user ? `Welcome back, ${user.display_name.split(' ')[0]}` : 'A community archive for endangered dialects'}
           </p>
-          <h1 className="text-[2.6rem] sm:text-[3.4rem] font-extrabold leading-[1.05] tracking-tight text-ink">
-            Every voice you record keeps a language <span className="text-saffron-600">alive.</span>
+          <h1 className="rise rise-2 text-[3rem] font-normal leading-[1] tracking-[-0.03em] text-ink sm:text-[4.4rem]">
+            Every voice you record keeps a language <em className="text-saffron-600">alive.</em>
           </h1>
-          <p className="mt-5 max-w-xl text-lg leading-relaxed text-muted">
+          <p className="rise rise-3 mt-6 max-w-xl font-display text-[19px] leading-relaxed text-ink-soft">
             SwaraVeda gathers the songs, stories and everyday speech of India’s endangered dialects,
             turns them into searchable text with speech AI, and lets the communities who speak them
             check every word.
           </p>
-          <div className="mt-8 flex flex-wrap gap-3">
+          <div className="rise rise-4 mt-8 flex flex-wrap gap-3">
             {user ? (
               <>
                 <ButtonLink to="/recordings/new" size="lg" icon={<HiOutlineMicrophone className="w-5 h-5" />}>Record a voice</ButtonLink>
@@ -129,21 +150,21 @@ export default function Dashboard() {
             )}
           </div>
         </div>
-        <HeroIllustration />
+        <div className="rise rise-3"><HeroIllustration /></div>
       </section>
 
       <section aria-label="Archive in numbers">
         {hasData ? (
-          <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-card border border-line bg-line sm:grid-cols-4">
+          <dl className="grid grid-cols-2 gap-px overflow-hidden border border-ink/85 bg-ink/85 sm:grid-cols-4">
             {[
               { label: 'hours of speech', value: hours(stats.total_seconds) },
               { label: 'recordings', value: stats.recordings },
               { label: 'passages verified', value: stats.verified_segments },
               { label: 'dialects', value: stats.dialects },
             ].map((s) => (
-              <div key={s.label} className="bg-surface px-6 py-5">
-                <dd className="font-display text-3xl font-bold text-ink tabular">{s.value}</dd>
-                <dt className="text-sm text-muted">{s.label}</dt>
+              <div key={s.label} className="bg-paper px-6 py-5">
+                <dd className="font-display text-[2.6rem] leading-none text-ink tabular">{s.value}</dd>
+                <dt className="lbl mt-2 text-muted">{s.label}</dt>
               </div>
             ))}
           </dl>
@@ -156,15 +177,15 @@ export default function Dashboard() {
       </section>
 
       <section>
-        <h2 className="text-2xl font-bold text-ink">How it works</h2>
+        <h2 className="border-b border-ink/85 pb-3 text-[2rem] font-normal text-ink">How it works</h2>
         <ol className="mt-6 grid gap-5 md:grid-cols-3">
           {steps.map((s, i) => (
-            <li key={s.title} className="relative rounded-card border border-line bg-surface p-6 shadow-card">
-              <span className="absolute right-5 top-4 font-display text-4xl font-bold text-line">{i + 1}</span>
-              <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-saffron-50 text-saffron-600">
-                <s.icon className="w-6 h-6" />
+            <li key={s.title} className="group relative border border-ink/85 bg-surface p-6 transition-transform duration-500 hover:-translate-y-1">
+              <span className="absolute right-5 top-3 font-display text-5xl text-saffron-600/25">{i + 1}</span>
+              <span className="flex h-11 w-11 items-center justify-center rounded-full border border-saffron-600 text-saffron-600 transition-colors duration-500 group-hover:bg-saffron-600 group-hover:text-white">
+                <s.icon className="w-5 h-5" />
               </span>
-              <h3 className="mt-4 text-lg font-semibold text-ink">{s.title}</h3>
+              <h3 className="mt-4 text-2xl font-normal text-ink">{s.title}</h3>
               <p className="mt-1.5 text-[15px] leading-relaxed text-muted">{s.text}</p>
             </li>
           ))}
@@ -174,7 +195,7 @@ export default function Dashboard() {
       {recent.length > 0 && (
         <section>
           <div className="flex items-end justify-between gap-4">
-            <h2 className="text-2xl font-bold text-ink">Recently added</h2>
+            <h2 className="text-[2rem] font-normal text-ink">Recently added</h2>
             <Link to="/recordings" className="flex items-center gap-1 text-[15px] font-medium text-saffron-600 hover:text-saffron-700">
               Whole archive <HiOutlineArrowRight className="w-4 h-4" />
             </Link>
@@ -186,21 +207,15 @@ export default function Dashboard() {
       )}
 
       {dialects.length > 0 && (
-        <section className="rounded-[20px] bg-saffron-900 px-6 py-10 sm:px-10 text-saffron-50">
-          <div className="flex flex-wrap items-end justify-between gap-4">
+        <section>
+          <div className="flex flex-wrap items-end justify-between gap-4 border-b border-ink/85 pb-3">
             <div>
-              <h2 className="text-2xl font-bold text-white">Dialects in the archive</h2>
-              <p className="mt-1 text-saffron-100/80">Speak one of these, or one that’s missing? Add your voice.</p>
+              <h2 className="text-[2rem] font-normal text-ink">Dialects on the shelf</h2>
+              <p className="mt-1 font-display text-[17px] text-ink-soft">Speak one of these, or one that’s missing? Add your voice.</p>
             </div>
-            <ButtonLink to="/dialects" variant="secondary" size="sm">All dialects</ButtonLink>
+            <ButtonLink to="/dialects" variant="secondary" size="sm">Open the shelf</ButtonLink>
           </div>
-          <ul className="mt-6 flex flex-wrap gap-2.5">
-            {dialects.slice(0, 16).map((d) => (
-              <li key={d.id} className="rounded-full border border-white/15 bg-white/5 px-4 py-1.5 text-[15px]">
-                {d.name}{d.region && <span className="text-saffron-100/60"> · {d.region}</span>}
-              </li>
-            ))}
-          </ul>
+          <MiniShelf dialects={dialects} />
         </section>
       )}
 

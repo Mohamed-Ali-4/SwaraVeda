@@ -20,7 +20,7 @@ declare global {
 }
 
 const field =
-  'w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-[15px] text-white placeholder:text-white/35 ' +
+  'w-full rounded-[12px] border border-white/10 bg-white/[0.04] px-4 py-3 text-[15px] text-white placeholder:text-white/35 ' +
   'transition focus:border-[#FFB224] focus:bg-white/[0.07] focus:outline-none focus:ring-4 focus:ring-[#FFB224]/20';
 const labelCls = 'mb-1.5 block text-sm font-medium text-white/75';
 
@@ -179,7 +179,7 @@ export default function Cover() {
           </div>
 
           <form onSubmit={submit} className="space-y-4">
-            {error && <p role="alert" className="rounded-xl border border-rose-400/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">{error}</p>}
+            {error && <p role="alert" className="rounded-[12px] border border-rose-400/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">{error}</p>}
             {mode === 'signup' ? (
               <>
                 <div>
@@ -193,7 +193,7 @@ export default function Cover() {
                 <div>
                   <label htmlFor="cv-phone" className={labelCls}>Mobile number</label>
                   <div className="flex">
-                    <span className="flex items-center rounded-l-xl border border-r-0 border-white/10 bg-white/[0.08] px-3.5 text-sm text-white/70">+91</span>
+                    <span className="flex items-center rounded-l-[12px] border border-r-0 border-white/10 bg-white/[0.08] px-3.5 text-sm text-white/70">+91</span>
                     <input id="cv-phone" type="tel" inputMode="tel" required autoComplete="tel-national" value={form.phone} onChange={set('phone')}
                       className={`${field} rounded-l-none`} placeholder="98765 43210" pattern="[0-9+\s\-]{10,16}" title="A 10-digit mobile number" />
                   </div>

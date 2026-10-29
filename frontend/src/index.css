@@ -1,55 +1,59 @@
 @import "tailwindcss";
 
-/* SwaraVeda design tokens.
-   Warm "paper and palm-leaf manuscript" neutrals; saffron is the brand and
-   primary action colour; lotus marks AI features; leaf marks verified work.
-   Layout: one content column up to 72rem; the recording page is
-   transcript-first with a sticky player. */
+/* SwaraVeda design tokens: printed paper.
+   Warm off-white paper, ink text, cobalt as the one accent (actions, links,
+   the current item); vermilion marks AI drafts, deep green marks verified
+   work. Newsreader for headings, Inter Tight for text and small uppercase
+   labels, thin ink rules instead of soft cards. Matches the dialect shelf.
+   (The saffron/lotus/leaf names are kept so every page picks this up.) */
 @theme {
-  --color-paper: #f8f5ef;
-  --color-surface: #ffffff;
-  --color-sunken: #f2ede4;
-  --color-ink: #231c15;
-  --color-ink-soft: #4a3f33;
-  --color-muted: #776a5b;
-  --color-faint: #a69887;
-  --color-line: #e7dfd2;
-  --color-line-strong: #d4c7b4;
+  --color-paper: #edebe6;
+  --color-surface: #f4f2ed;
+  --color-sunken: #e4e1da;
+  --color-ink: #141414;
+  --color-ink-soft: #2f2d29;
+  --color-muted: #6d6a63;
+  --color-faint: #9b978e;
+  --color-line: #d4d0c7;
+  --color-line-strong: #8e8a81;
 
-  --color-saffron-50: #fdf4e6;
-  --color-saffron-100: #fae3bf;
-  --color-saffron-300: #f0b45a;
-  --color-saffron-500: #d97706;
-  --color-saffron-600: #b45309;
-  --color-saffron-700: #92400e;
-  --color-saffron-900: #4a2306;
+  --color-saffron-50: #e9edf9;
+  --color-saffron-100: #d0d9f3;
+  --color-saffron-300: #8ea1e3;
+  --color-saffron-500: #2f50c8;
+  --color-saffron-600: #1f3fb0;
+  --color-saffron-700: #18318a;
+  --color-saffron-900: #0d1b4d;
 
-  --color-lotus-50: #fcf0f5;
-  --color-lotus-100: #f7d9e6;
-  --color-lotus-500: #c2477f;
-  --color-lotus-600: #a3326a;
+  --color-lotus-50: #f9ebe6;
+  --color-lotus-100: #f1d0c6;
+  --color-lotus-500: #cf4527;
+  --color-lotus-600: #b23a1f;
 
-  --color-leaf-50: #eaf5ee;
-  --color-leaf-100: #cfe8d8;
-  --color-leaf-600: #2f7a4a;
-  --color-leaf-700: #225c37;
+  --color-leaf-50: #e5efe9;
+  --color-leaf-100: #c9ddd1;
+  --color-leaf-600: #1e5e45;
+  --color-leaf-700: #164634;
 
-  --color-river-50: #ebf2fb;
-  --color-river-100: #d3e2f5;
-  --color-river-500: #3b6fb6;
-  --color-river-600: #2c5a99;
+  --color-river-50: #e8edf5;
+  --color-river-100: #d0dbea;
+  --color-river-500: #3d5f94;
+  --color-river-600: #2c4a78;
 
-  --color-danger-50: #fdeeee;
-  --color-danger-600: #b42318;
+  --color-danger-50: #f8e9e6;
+  --color-danger-600: #a8321b;
 
-  --font-display: "Anek Latin", "Hind", ui-sans-serif, system-ui, sans-serif;
-  --font-sans: "Hind", "Noto Sans Kannada", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
-  --font-script: "Noto Sans Kannada", "Hind", ui-sans-serif, sans-serif;
+  --font-display: "Newsreader", Georgia, serif;
+  --font-sans: "Inter Tight", "Noto Sans Devanagari", "Noto Sans Kannada", ui-sans-serif, system-ui, sans-serif;
+  --font-script: "Noto Sans Kannada", "Inter Tight", ui-sans-serif, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
 
-  --radius-card: 14px;
-  --shadow-card: 0 1px 2px rgb(35 28 21 / 0.04), 0 6px 20px -12px rgb(35 28 21 / 0.12);
-  --shadow-lift: 0 2px 4px rgb(35 28 21 / 0.05), 0 16px 40px -16px rgb(35 28 21 / 0.22);
+  --radius-card: 3px;
+  --radius-md: 2px;
+  --radius-lg: 3px;
+  --radius-xl: 4px;
+  --shadow-card: 0 1px 0 rgb(20 20 20 / 0.04);
+  --shadow-lift: 0 30px 60px -28px rgb(20 16 10 / 0.45);
 
   --animate-toast-in: toast-in 180ms ease-out;
   --animate-fade-up: fade-up 220ms ease-out;
@@ -69,17 +73,37 @@
     background: var(--color-paper);
     color: var(--color-ink);
     font-family: var(--font-sans);
-    font-size: 16px;
+    font-size: 15.5px;
     line-height: 1.6;
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
   }
-  h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; line-height: 1.15; }
+  h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; line-height: 1.12; letter-spacing: -0.01em; }
   ::selection { background: var(--color-saffron-100); }
-  :focus-visible { outline: 2px solid var(--color-saffron-500); outline-offset: 2px; border-radius: 6px; }
+  :focus-visible { outline: 2px solid var(--color-saffron-500); outline-offset: 2px; border-radius: 2px; }
   button, [role="button"], summary { cursor: pointer; }
   button:disabled { cursor: not-allowed; }
   .tabular { font-variant-numeric: tabular-nums; }
+}
+
+@layer components {
+  /* Paper grain over the inner pages, as on the dialect shelf. */
+  .paper-grain {
+    position: fixed; inset: 0; z-index: 90; pointer-events: none; opacity: .35;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .45 0 0 0 0 .42 0 0 0 0 .38 0 0 0 .22 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+}
+
+@layer components {
+  /* Small uppercase print label, e.g. "ARCHIVE / संग्रह". */
+  .lbl { font-family: var(--font-sans); font-weight: 600; font-size: 10.5px; line-height: 1; letter-spacing: .09em; text-transform: uppercase; }
+  .lbl .hi, .hi { letter-spacing: 0; }
+  /* Content rising into view, used once per page. */
+  .rise { animation: rise .7s cubic-bezier(.2,.8,.2,1) both; }
+  .rise-2 { animation-delay: .08s; }
+  .rise-3 { animation-delay: .16s; }
+  .rise-4 { animation-delay: .24s; }
+  @keyframes rise { from { transform: translateY(14px); opacity: 0; } to { transform: none; opacity: 1; } }
 }
 
 @media (prefers-reduced-motion: reduce) {

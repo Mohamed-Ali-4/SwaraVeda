@@ -8,7 +8,7 @@ import { useAuth } from '../lib/auth';
 import { syncPending, usePendingUploads } from '../lib/offline';
 import { useToast } from '../lib/toast';
 import { initials } from '../lib/format';
-import { ButtonLink, LotusMark } from './ui';
+import { ButtonLink } from './ui';
 
 function UserMenu() {
   const { user, logout } = useAuth();
@@ -103,16 +103,21 @@ export default function Layout() {
   }, [user]);
 
   const links = [
-    { to: '/recordings', icon: HiOutlineCollection, label: 'Archive' },
-    { to: '/search', icon: HiOutlineSearch, label: 'Search' },
-    { to: '/dialects', icon: HiOutlineGlobeAlt, label: 'Dialects' },
-    ...(user ? [{ to: '/review', icon: HiOutlineClipboardCheck, label: 'Review' }] : []),
-    ...(isVerifier ? [{ to: '/manage', icon: HiOutlineCog, label: 'Manage' }] : []),
+    { to: '/recordings', icon: HiOutlineCollection, label: 'Archive', hi: 'संग्रह' },
+    { to: '/search', icon: HiOutlineSearch, label: 'Search', hi: 'खोज' },
+    { to: '/dialects', icon: HiOutlineGlobeAlt, label: 'Dialects', hi: 'बोलियाँ' },
+    ...(user ? [{ to: '/review', icon: HiOutlineClipboardCheck, label: 'Review', hi: 'जाँच' }] : []),
+    ...(isVerifier ? [{ to: '/manage', icon: HiOutlineCog, label: 'Manage', hi: 'प्रबंध' }] : []),
   ];
 
+  // Boxed print labels; the current page is filled cobalt, as on the shelf's region tabs.
   const navClass = ({ isActive }: { isActive: boolean }) =>
-    `flex items-center gap-1.5 rounded-lg px-3 py-2 text-[15px] no-underline transition-colors ${
-      isActive ? 'bg-saffron-50 text-saffron-700 font-medium' : 'text-ink-soft hover:bg-sunken hover:text-ink'
+    `lbl -ml-px flex h-[25px] items-center gap-1.5 border px-2.5 no-underline transition-colors duration-500 ${
+      isActive ? 'relative z-10 border-saffron-600 bg-saffron-600 text-white' : 'border-ink/85 text-ink hover:bg-ink hover:text-paper'
+    }`;
+  const mobileNavClass = ({ isActive }: { isActive: boolean }) =>
+    `flex items-center gap-2 rounded-md px-3 py-2.5 text-[15px] no-underline ${
+      isActive ? 'bg-saffron-600 text-white' : 'text-ink-soft hover:bg-sunken'
     }`;
 
   return (
@@ -120,20 +125,18 @@ export default function Layout() {
       <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[200] focus:rounded-lg focus:bg-surface focus:px-4 focus:py-2">
         Skip to content
       </a>
-      <header className="sticky top-0 z-40 border-b border-line bg-paper/90 backdrop-blur supports-[backdrop-filter]:bg-paper/75">
-        <div className="mx-auto flex h-16 max-w-6xl items-center gap-4 px-4 sm:px-6">
-          <Link to="/" className="flex items-center gap-2 no-underline shrink-0" aria-label="SwaraVeda home">
-            <LotusMark className="w-8 h-8" />
-            <span className="font-display text-[1.35rem] font-bold tracking-tight text-ink">
-              Swara<span className="text-saffron-600">Veda</span>
-            </span>
+      <div className="paper-grain" aria-hidden="true" />
+      <header className="sticky top-0 z-40 border-b border-ink/85 bg-paper/90 backdrop-blur supports-[backdrop-filter]:bg-paper/80">
+        <div className="mx-auto flex h-[72px] max-w-6xl items-center gap-4 px-4 sm:px-6">
+          <Link to="/" className="flex shrink-0 flex-col items-center gap-1 text-saffron-600 no-underline" aria-label="SwaraVeda home">
+            <span lang="hi" className="text-[21px] font-bold leading-none" style={{ fontFamily: '"Noto Serif Devanagari", "Noto Sans Devanagari", serif' }}>स्वरवेद</span>
+            <span className="pl-[.34em] text-[8.5px] font-semibold uppercase leading-none tracking-[.34em]">SwaraVeda</span>
           </Link>
 
-          <nav className="hidden md:flex items-center gap-0.5 ml-4" aria-label="Main">
-            {links.map(({ to, icon: Icon, label }) => (
+          <nav className="ml-6 hidden items-center pl-px md:flex" aria-label="Main">
+            {links.map(({ to, label, hi }) => (
               <NavLink key={to} to={to} className={navClass}>
-                <Icon className="w-[18px] h-[18px]" />
-                {label}
+                {label}<span className="hi hidden opacity-70 lg:inline" lang="hi">/ {hi}</span>
               </NavLink>
             ))}
           </nav>
@@ -169,7 +172,7 @@ export default function Layout() {
         {menuOpen && (
           <div className="md:hidden border-t border-line bg-paper px-4 pb-4 pt-2 space-y-1">
             {links.map(({ to, icon: Icon, label }) => (
-              <NavLink key={to} to={to} className={navClass}>
+              <NavLink key={to} to={to} className={mobileNavClass}>
                 <Icon className="w-5 h-5" />
                 {label}
               </NavLink>
@@ -178,7 +181,7 @@ export default function Layout() {
               {user ? (
                 <>
                   <ButtonLink to="/recordings/new" icon={<HiOutlineMicrophone className="w-5 h-5" />}>Record</ButtonLink>
-                  <NavLink to="/profile" className={navClass}><HiOutlineUser className="w-5 h-5" />{user.display_name}</NavLink>
+                  <NavLink to="/profile" className={mobileNavClass}><HiOutlineUser className="w-5 h-5" />{user.display_name}</NavLink>
                   <button onClick={logout} className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-[15px] text-ink-soft hover:bg-sunken">
                     <HiOutlineLogout className="w-5 h-5" /> Sign out
                   </button>
@@ -198,13 +201,10 @@ export default function Layout() {
         <Outlet />
       </main>
 
-      <footer className="border-t border-line">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 sm:px-6 py-6 text-sm text-muted">
-          <p className="flex items-center gap-2">
-            <LotusMark className="w-5 h-5" />
-            SwaraVeda · keeping endangered voices alive
-          </p>
-          <p>Recordings belong to the communities who share them.</p>
+      <footer className="border-t border-ink/85">
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-6 text-muted sm:px-6">
+          <p className="lbl">© SwaraVeda · keeping endangered voices alive</p>
+          <p className="lbl">Recordings belong to the communities who share them</p>
         </div>
       </footer>
     </div>
