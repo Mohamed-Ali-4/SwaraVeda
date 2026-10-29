@@ -2,7 +2,9 @@ from datetime import date, datetime
 from enum import Enum
 from typing import Optional, List
 from uuid import UUID
-from pydantic import BaseModel, ConfigDict, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
+
+from app.phone import normalize_phone
 
 
 class RoleEnum(str, Enum):
@@ -47,13 +49,25 @@ class JobStatus(str, Enum):
 class RegisterIn(BaseModel):
     display_name: str = Field(min_length=1, max_length=80)
     email: EmailStr
+    phone: Optional[str] = None
     password: str = Field(min_length=8, max_length=128)
     native_dialect: Optional[str] = None
 
+    @field_validator("phone")
+    @classmethod
+    def _phone(cls, v: Optional[str]) -> Optional[str]:
+        return normalize_phone(v) if v and v.strip() else None
+
 
 class LoginIn(BaseModel):
-    email: EmailStr
+    # An email address or a mobile number.
+    email: str = Field(min_length=3, max_length=254)
     password: str
+
+
+class GoogleLoginIn(BaseModel):
+    # The ID token from Google Identity Services.
+    credential: str
 
 
 class TokenOut(BaseModel):
@@ -67,12 +81,20 @@ class ProfileOut(BaseModel):
     id: UUID
     display_name: str
     email: str
+    phone: Optional[str] = None
     role: str
     native_dialect: Optional[str] = None
 
 
 class ProfilePatch(BaseModel):
     display_name: Optional[str] = None
+    phone: Optional[str] = None
+
+    @field_validator("phone")
+    @classmethod
+    def _phone(cls, v: Optional[str]) -> Optional[str]:
+        return normalize_phone(v) if v and v.strip() else None
+
     native_dialect: Optional[str] = None
 
 
@@ -301,6 +323,7 @@ class AdminUserOut(BaseModel):
     id: UUID
     display_name: str
     email: str
+    phone: Optional[str] = None
     role: str
     native_dialect: Optional[str] = None
     created_at: datetime

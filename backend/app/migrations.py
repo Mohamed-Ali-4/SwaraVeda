@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 # lacks. Added columns are nullable: rows that predate them have no value.
 COLUMNS = {
     "contributors": [
-        "display_name text", "email text", "password_hash text",
+        "display_name text", "email text", "phone text", "password_hash text",
         "role text not null default 'contributor'", "native_dialect text",
         "created_at timestamptz default now()",
     ],
@@ -65,6 +65,7 @@ def statements() -> list[str]:
     stmts = ["create extension if not exists vector"]
     for table, cols in COLUMNS.items():
         stmts += [f"alter table if exists {table} add column if not exists {c}" for c in cols]
+    stmts.append("create unique index if not exists contributors_phone_key on contributors (phone) where phone is not null")
     stmts.append(FIX_EMBEDDING_DIM)
     return stmts
 

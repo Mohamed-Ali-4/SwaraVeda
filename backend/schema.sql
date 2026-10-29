@@ -7,6 +7,7 @@ create table if not exists contributors (
   id uuid primary key default gen_random_uuid(),
   display_name text not null,
   email text unique not null,
+  phone text unique,
   password_hash text not null,
   role text not null default 'contributor',
   native_dialect text,

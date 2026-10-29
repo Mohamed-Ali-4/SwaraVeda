@@ -15,6 +15,7 @@ class Contributor(SQLModel, table=True):
     id: UUID = Field(default_factory=uuid4, primary_key=True)
     display_name: str
     email: str = Field(unique=True, index=True)
+    phone: Optional[str] = Field(default=None, unique=True, index=True)
     password_hash: str
     role: str = "contributor"
     native_dialect: Optional[str] = None
