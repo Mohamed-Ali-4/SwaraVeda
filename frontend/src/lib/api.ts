@@ -15,12 +15,13 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (res) => res,
   (err) => {
-    if (err.response?.status === 401) {
+    // An expired session: forget it and go back to the cover page. A failed
+    // sign-in (also 401) is left to the form to explain.
+    const url: string = err.config?.url ?? '';
+    if (err.response?.status === 401 && !url.startsWith('/auth/') && localStorage.getItem('token')) {
       localStorage.removeItem('token');
       localStorage.removeItem('user');
-      if (window.location.pathname !== '/login') {
-        window.location.href = '/login';
-      }
+      window.location.href = '/';
     }
     return Promise.reject(err);
   }

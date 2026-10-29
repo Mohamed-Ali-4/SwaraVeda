@@ -18,6 +18,7 @@ export default function Profile() {
   const toast = useToast();
   const [displayName, setDisplayName] = useState(user?.display_name || '');
   const [nativeDialect, setNativeDialect] = useState(user?.native_dialect || '');
+  const [phone, setPhone] = useState(user?.phone || '');
   const [saving, setSaving] = useState(false);
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -28,7 +29,7 @@ export default function Profile() {
     e.preventDefault();
     setSaving(true);
     try {
-      await api.patch('/auth/me', { display_name: displayName.trim(), native_dialect: nativeDialect.trim() || null });
+      await api.patch('/auth/me', { display_name: displayName.trim(), native_dialect: nativeDialect.trim() || null, phone: phone.trim() || null });
       await refreshUser();
       toast.success('Profile saved.');
     } catch (err) {
@@ -73,6 +74,9 @@ export default function Profile() {
           <h2 className="text-lg font-semibold text-ink">About you</h2>
           <Field label="Name" htmlFor="p-name">
             <input id="p-name" value={displayName} onChange={(e) => setDisplayName(e.target.value)} required className={input} />
+          </Field>
+          <Field label="Mobile number" htmlFor="p-phone" hint="You can sign in with it instead of your email.">
+            <input id="p-phone" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} className={input} placeholder="98765 43210" />
           </Field>
           <Field label="Mother tongue" htmlFor="p-dialect" hint="Helps verifiers know which recordings you can check.">
             <input id="p-dialect" value={nativeDialect} onChange={(e) => setNativeDialect(e.target.value)} className={input} />

@@ -6,6 +6,7 @@ interface User {
   id: string;
   display_name: string;
   email: string;
+  phone?: string;
   role: string;
   native_dialect?: string;
 }
@@ -14,7 +15,8 @@ interface AuthContextType {
   user: User | null;
   token: string | null;
   login: (email: string, password: string) => Promise<void>;
-  register: (data: { display_name: string; email: string; password: string; native_dialect?: string }) => Promise<void>;
+  register: (data: { display_name: string; email: string; phone?: string; password: string; native_dialect?: string }) => Promise<void>;
+  loginWithGoogle: (credential: string) => Promise<void>;
   logout: () => void;
   refreshUser: () => Promise<void>;
   loading: boolean;
@@ -41,18 +43,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [token]);
 
-  const login = async (email: string, password: string) => {
-    const res = await api.post('/auth/login', { email, password });
-    const { access_token } = res.data;
+  // Stores the token and loads the user before resolving, so the next page
+  // already sees the signed-in user.
+  const adopt = async (access_token: string) => {
     localStorage.setItem('token', access_token);
+    const me = await api.get('/auth/me');
+    setUser(me.data);
     setToken(access_token);
   };
 
-  const register = async (data: { display_name: string; email: string; password: string; native_dialect?: string }) => {
+  const login = async (email: string, password: string) => {
+    const res = await api.post('/auth/login', { email, password });
+    await adopt(res.data.access_token);
+  };
+
+  const loginWithGoogle = async (credential: string) => {
+    const res = await api.post('/auth/google', { credential });
+    await adopt(res.data.access_token);
+  };
+
+  const register = async (data: { display_name: string; email: string; phone?: string; password: string; native_dialect?: string }) => {
     const res = await api.post('/auth/register', data);
-    const { access_token } = res.data;
-    localStorage.setItem('token', access_token);
-    setToken(access_token);
+    await adopt(res.data.access_token);
   };
 
   const refreshUser = async () => {
@@ -67,7 +79,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, login, register, logout, refreshUser, loading }}>
+    <AuthContext.Provider value={{ user, token, login, register, loginWithGoogle, logout, refreshUser, loading }}>
       {children}
     </AuthContext.Provider>
   );
@@ -86,6 +98,6 @@ export function ProtectedRoute({ children }: { children: ReactNode }) {
   if (loading) {
     return <div className="flex justify-center py-24"><span className="h-8 w-8 animate-spin rounded-full border-[3px] border-saffron-500 border-t-transparent" /></div>;
   }
-  if (!user) return <Navigate to="/login" replace state={{ from: location.pathname + location.search }} />;
+  if (!user) return <Navigate to="/" replace state={{ from: location.pathname + location.search }} />;
   return <>{children}</>;
 }

@@ -13,6 +13,9 @@ class Settings(BaseSettings):
     JWT_EXPIRE_MINUTES: int = 10080
     CORS_ORIGINS: str = "http://localhost:5173"
 
+    # OAuth client ID from Google Cloud Console; enables "Continue with Google".
+    GOOGLE_CLIENT_ID: str = ""
+
     # Comma-separated emails that are made admin when they register or log in.
     ADMIN_EMAILS: str = ""
 
