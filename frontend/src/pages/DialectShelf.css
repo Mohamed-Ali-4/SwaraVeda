@@ -205,3 +205,6 @@
 .vs-voice-meta { color: var(--muted); }
 .vs-voice-more { padding: 10px 0 0; border: 0; background: none; color: var(--cobalt); }
 .vs-voice-empty { margin: 0; font: italic 400 15px/1.5 var(--serif); color: var(--muted); }
+.vs-elsewhere { margin: 4px 0 0; font: 400 14px/1.6 var(--sans); color: var(--muted); }
+.vs-elsewhere a { color: var(--cobalt); text-decoration: none; border-bottom: 1px solid rgba(31, 63, 176, .35); }
+.vs-elsewhere a:hover { border-bottom-color: var(--cobalt); }

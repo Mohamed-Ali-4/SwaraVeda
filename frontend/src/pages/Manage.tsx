@@ -1,5 +1,7 @@
-import { useEffect, useState } from 'react';
-import { HiOutlineDownload, HiOutlineUserGroup, HiOutlineDatabase } from 'react-icons/hi';
+import { useEffect, useState, type FormEvent } from 'react';
+import { genres } from '../lib/types';
+import { capitalize } from '../lib/format';
+import { HiOutlineDownload, HiOutlineUserGroup, HiOutlineDatabase, HiOutlineLink } from 'react-icons/hi';
 import api, { errorMessage } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { useDialects } from '../lib/dialects';
@@ -141,6 +143,98 @@ function Users({ currentUserId }: { currentUserId: string }) {
   );
 }
 
+
+const LICENCES = [
+  'Public domain', 'CC0 1.0', 'CC BY 4.0', 'CC BY-SA 4.0', 'CC BY-NC 4.0', 'CC BY-NC-SA 4.0', 'Used with the owner\u2019s permission',
+];
+// Licences that allow the clip to be used for training speech AI.
+const TRAINABLE = new Set(['Public domain', 'CC0 1.0', 'CC BY 4.0', 'CC BY-SA 4.0']);
+
+/** Add an existing, openly licensed folk recording so listeners can hear the dialect. */
+function ReferenceRecording() {
+  const { dialects } = useDialects();
+  const toast = useToast();
+  const empty = { title: '', dialect_id: '', audio_url: '', speaker_name: '', genre: 'song', licence: 'CC BY 4.0', source: '', source_url: '' };
+  const [form, setForm] = useState(empty);
+  const [transcribe, setTranscribe] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const set = (k: keyof typeof empty) => (e: { target: { value: string } }) => setForm({ ...form, [k]: e.target.value });
+
+  const submit = async (e: FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      const rec = (await api.post('/recordings', {
+        title: form.title.trim(),
+        dialect_id: form.dialect_id || undefined,
+        audio_url: form.audio_url.trim(),
+        speaker_name: form.speaker_name.trim() || undefined,
+        genre: form.genre,
+        licence: form.licence,
+        consent_public: true,
+        consent_ai_training: TRAINABLE.has(form.licence),
+        notes: `Reference recording. Source: ${form.source.trim()}${form.source_url.trim() ? ` (${form.source_url.trim()})` : ''}. Licence: ${form.licence}.`,
+      })).data;
+      if (transcribe) await api.post(`/recordings/${rec.id}/transcribe`).catch(() => {});
+      toast.success('Reference recording added. It now plays on the dialect\u2019s tape.');
+      setForm({ ...empty, dialect_id: form.dialect_id, licence: form.licence });
+    } catch (err) {
+      toast.error(errorMessage(err, 'Could not add the recording'));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Card className="p-6 sm:p-8">
+      <div className="flex items-start gap-4">
+        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-saffron-600 text-saffron-600"><HiOutlineLink className="w-5 h-5" /></span>
+        <div>
+          <h2 className="text-xl font-semibold text-ink">Add a reference recording</h2>
+          <p className="mt-1 max-w-2xl text-[15px] text-muted">
+            Bring in an existing folk song or story so people can hear a dialect before anyone records it here.
+            Use only recordings you are allowed to share: public domain, Creative Commons, or with the owner&rsquo;s permission.
+            Paste a direct link to the audio file (ending in .mp3, .ogg, .wav or .m4a), e.g. from Wikimedia Commons or the Internet Archive.
+          </p>
+        </div>
+      </div>
+      <form onSubmit={submit} className="mt-6 grid gap-4 sm:grid-cols-2">
+        <Field label="Title" htmlFor="ref-title"><input id="ref-title" required value={form.title} onChange={set('title')} className={input} placeholder="e.g. Koti Chennaya paddana" /></Field>
+        <Field label="Dialect" htmlFor="ref-dialect">
+          <select id="ref-dialect" required value={form.dialect_id} onChange={set('dialect_id')} className={input}>
+            <option value="">Choose a dialect</option>
+            {dialects.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
+          </select>
+        </Field>
+        <div className="sm:col-span-2">
+          <Field label="Link to the audio file" htmlFor="ref-url" hint="The direct file, not the page it is on. Right-click the player or download link and copy the address.">
+            <input id="ref-url" required type="url" pattern="https?://.+" value={form.audio_url} onChange={set('audio_url')} className={input} placeholder="https://upload.wikimedia.org/…/song.ogg" />
+          </Field>
+        </div>
+        <Field label="Singer or speaker" htmlFor="ref-speaker"><input id="ref-speaker" value={form.speaker_name} onChange={set('speaker_name')} className={input} /></Field>
+        <Field label="Kind" htmlFor="ref-genre">
+          <select id="ref-genre" value={form.genre} onChange={set('genre')} className={input}>
+            {genres.map((g) => <option key={g} value={g}>{capitalize(g)}</option>)}
+          </select>
+        </Field>
+        <Field label="Licence" htmlFor="ref-licence" hint={TRAINABLE.has(form.licence) ? 'This licence allows use for training Vani.' : 'Kept out of Vani\u2019s training data.'}>
+          <select id="ref-licence" value={form.licence} onChange={set('licence')} className={input}>
+            {LICENCES.map((l) => <option key={l}>{l}</option>)}
+          </select>
+        </Field>
+        <Field label="Source (credit)" htmlFor="ref-source"><input id="ref-source" required value={form.source} onChange={set('source')} className={input} placeholder="e.g. Wikimedia Commons, uploaded by …" /></Field>
+        <div className="sm:col-span-2">
+          <Field label="Source page (optional)" htmlFor="ref-source-url"><input id="ref-source-url" type="url" value={form.source_url} onChange={set('source_url')} className={input} placeholder="https://commons.wikimedia.org/wiki/File:…" /></Field>
+        </div>
+        <label className="flex items-center gap-2 text-sm text-ink-soft sm:col-span-2">
+          <input type="checkbox" checked={transcribe} onChange={(e) => setTranscribe(e.target.checked)} /> Let Vani transcribe it
+        </label>
+        <div className="sm:col-span-2"><Button type="submit" loading={saving} icon={<HiOutlineLink className="w-4 h-4" />}>Add recording</Button></div>
+      </form>
+    </Card>
+  );
+}
+
 export default function Manage() {
   const { user } = useAuth();
   if (!user || (user.role !== 'verifier' && user.role !== 'admin')) {
@@ -148,7 +242,8 @@ export default function Manage() {
   }
   return (
     <div className="mx-auto max-w-4xl space-y-6">
-      <PageHeader eyebrow="Manage" title="Archive tools" subtitle="Export the dataset and decide who can approve transcripts." />
+      <PageHeader eyebrow="Manage" title="Archive tools" subtitle="Add reference recordings, export the dataset and decide who can approve transcripts." />
+      <ReferenceRecording />
       <DatasetExport />
       {user.role === 'admin' && <Users currentUserId={user.id} />}
     </div>

@@ -60,3 +60,16 @@ def test_project_url_strips_api_paths():
     base = "https://abc.supabase.co"
     for url in (base, base + "/", base + "/rest/v1/", base + "/rest/v1", " " + base + "/storage/v1/ "):
         assert storage.project_url(url) == base
+
+
+def test_reference_recording_from_a_link_keeps_its_licence(client, auth_headers):
+    resp = client.post("/recordings", headers=auth_headers, json={
+        "title": "Paddana (archive copy)", "audio_url": "https://archive.example/paddana.mp3",
+        "licence": "CC BY 4.0", "consent_public": True, "notes": "Source: Example Archive",
+    })
+    assert resp.status_code == 201, resp.text
+    assert resp.json()["licence"] == "CC BY 4.0"
+    plain = client.post("/recordings", headers=auth_headers, json={"title": "Mine", "audio_url": "https://x/a.webm"})
+    assert plain.json()["licence"] == "CC-BY-NC-4.0"
+    bad = client.post("/recordings", headers=auth_headers, json={"title": "Bad", "audio_url": "file:///etc/passwd"})
+    assert bad.status_code == 422

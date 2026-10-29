@@ -76,6 +76,8 @@ def create_recording(
     user: Contributor = Depends(current_user),
 ):
     data = body.model_dump()
+    if not data.get("licence"):
+        data.pop("licence")  # keep the archive's default licence
     if data.get("storage_path") and not data.get("audio_url"):
         try:
             data["audio_url"] = public_url(data["storage_path"])
