@@ -116,7 +116,7 @@ export default function Dialects() {
         subtitle="Each dialect lists where it’s spoken, its script, and how endangered it is on UNESCO’s scale."
         actions={
           <>
-            <ButtonLink to="/dialects" variant="secondary">Open the shelf</ButtonLink>
+            <ButtonLink to="/dialects/shelf" variant="secondary">Shelf view</ButtonLink>
             {user && !showForm && <Button onClick={() => setShowForm(true)} icon={<HiOutlinePlus className="w-5 h-5" />}>Add a dialect</Button>}
           </>
         }
