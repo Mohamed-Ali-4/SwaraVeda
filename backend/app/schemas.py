@@ -157,6 +157,15 @@ class RecordingIn(BaseModel):
     consent_public: bool = False
     consent_ai_training: bool = False
     notes: Optional[str] = None
+    # For reference recordings added from a link: the licence they were published under.
+    licence: Optional[str] = Field(default=None, max_length=60)
+
+    @field_validator("audio_url")
+    @classmethod
+    def _http_only(cls, v: Optional[str]) -> Optional[str]:
+        if v and not v.lower().startswith(("https://", "http://")):
+            raise ValueError("The audio link must start with https://")
+        return v
 
 
 class RecordingPatch(BaseModel):

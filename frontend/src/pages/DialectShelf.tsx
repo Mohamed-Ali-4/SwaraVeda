@@ -638,6 +638,18 @@ function Shelf({ list }: { list: ShelfDialect[] }) {
                   )}
                 </ul>
               )}
+              {detail && (
+                <p className="vs-elsewhere">
+                  <span className="lbl">Hear it elsewhere:</span>{' '}
+                  {[
+                    ['Folk songs on YouTube', `https://www.youtube.com/results?search_query=${encodeURIComponent(`${detail.name} folk song`)}`],
+                    ['Wikimedia Commons', `https://commons.wikimedia.org/w/index.php?title=Special:MediaSearch&type=audio&search=${encodeURIComponent(`${detail.name} language`)}`],
+                    ['Internet Archive', `https://archive.org/search?query=${encodeURIComponent(detail.name)}&and%5B%5D=mediatype%3A%22audio%22`],
+                  ].map(([label, href], i) => (
+                    <span key={label}>{i > 0 && ' · '}<a href={href} target="_blank" rel="noreferrer">{label} ↗</a></span>
+                  ))}
+                </p>
+              )}
             </div>
           </div>
         </div>
