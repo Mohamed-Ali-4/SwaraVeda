@@ -3,6 +3,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import api from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { useDialects } from '../lib/dialects';
+import { clock } from '../lib/format';
+import type { Recording } from '../lib/types';
 import { SCRIPT_FONTS, toShelf, ZONES, type ShelfDialect } from '../lib/dialectInfo';
 import { safeSession } from '../lib/storage';
 import { Cover, CoverArt, Spine } from '../components/TapeArt';
@@ -82,6 +84,25 @@ function Shelf({ list }: { list: ShelfDialect[] }) {
   const root = useRef<HTMLDivElement>(null);
   const [detail, setDetail] = useState<ShelfDialect | null>(null);
   const [count, setCount] = useState<number | null>(null);
+  // A few recordings of the open dialect, playable right on the sheet.
+  const [clips, setClips] = useState<Recording[] | null>(null);
+  const [playing, setPlaying] = useState<string | null>(null);
+  const audio = useRef<HTMLAudioElement | null>(null);
+  const stopAudio = useRef(() => {});
+  stopAudio.current = () => {
+    audio.current?.pause();
+    setPlaying(null);
+  };
+  const toggle = (r: Recording) => {
+    if (!r.audio_url) return;
+    if (playing === r.id) return stopAudio.current();
+    audio.current?.pause();
+    const a = new Audio(r.audio_url);
+    a.onended = () => setPlaying(null);
+    a.onerror = () => setPlaying(null);
+    audio.current = a;
+    a.play().then(() => setPlaying(r.id), () => setPlaying(null));
+  };
   const engine = useRef<{ open: () => void; close: () => void } | null>(null);
 
   const N = list.length;
@@ -219,9 +240,13 @@ function Shelf({ list }: { list: ShelfDialect[] }) {
       safeSession.set('vs-last', dd.id);
       setDetail(dd);
       setCount(null);
-      api.get('/recordings', { params: { dialect_id: dd.id, page_size: 1 } })
-        .then((r) => setCount(r.data.total ?? 0))
-        .catch(() => setCount(-1));
+      setClips(null);
+      api.get('/recordings', { params: { dialect_id: dd.id, page_size: 4 } })
+        .then((r) => {
+          setCount(r.data.total ?? 0);
+          setClips((r.data.items ?? []).filter((x: Recording) => x.audio_url));
+        })
+        .catch(() => { setCount(-1); setClips([]); });
       blobs.forEach((b) => b.setAttribute('r', '0'));
       const rect = activeCover().getBoundingClientRect();
       isOpen = true;
@@ -253,6 +278,7 @@ function Shelf({ list }: { list: ShelfDialect[] }) {
 
     function closeDetail() {
       if (!isOpen || sheet.dataset.closing) return;
+      stopAudio.current();
       const rect = activeCover().getBoundingClientRect();
       sheet.dataset.closing = '1';
       sheet.style.transformOrigin = `${rect.left + rect.width / 2}px ${rect.top + rect.height / 2}px`;
@@ -576,9 +602,43 @@ function Shelf({ list }: { list: ShelfDialect[] }) {
             <button type="button" className="lbl box vs-watch" onClick={() => detail && navigate(`/recordings/new?dialect=${detail.id}`)}>
               Record in {detail?.name}{'\u00a0/\u00a0'}<span className="hi" lang="hi">रिकॉर्ड करें</span>
             </button>
-            <button type="button" className="lbl box" onClick={() => detail && navigate(`/recordings?dialect=${detail.id}`)}>
-              Listen{'\u00a0/\u00a0'}<span className="hi" lang="hi">सुनें</span>
+            <button type="button" className="lbl box" onClick={() => {
+              if (clips && clips.length) toggle(clips[0]);
+              else if (detail) navigate(`/recordings?dialect=${detail.id}`);
+            }}>
+              {playing ? 'Stop' : 'Listen'}{'\u00a0/\u00a0'}<span className="hi" lang="hi">{playing ? 'रोकें' : 'सुनें'}</span>
             </button>
+          </div>
+          <div className="vs-mask">
+            <div className="vs-voices">
+              <p className="lbl vs-d-meta">Voices in {detail?.name}</p>
+              {clips === null ? (
+                <p className="vs-voice-empty">Finding recordings…</p>
+              ) : clips.length === 0 ? (
+                <p className="vs-voice-empty">No one has recorded {detail?.name} yet. Be the first voice on this tape.</p>
+              ) : (
+                <ul>
+                  {clips.map((r) => (
+                    <li key={r.id}>
+                      <button type="button" className="vs-voice" aria-pressed={playing === r.id} onClick={() => toggle(r)}>
+                        <span className="vs-voice-icon" aria-hidden="true">{playing === r.id ? '❚❚' : '▶'}</span>
+                        <span className="vs-voice-title">{r.title}</span>
+                        <span className="lbl vs-voice-meta">
+                          {[r.speaker_name, r.duration_seconds ? clock(r.duration_seconds * 1000) : null].filter(Boolean).join(' · ')}
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+                  {count !== null && count > clips.length && (
+                    <li>
+                      <button type="button" className="lbl vs-voice-more" onClick={() => detail && navigate(`/recordings?dialect=${detail.id}`)}>
+                        All {count} recordings →
+                      </button>
+                    </li>
+                  )}
+                </ul>
+              )}
+            </div>
           </div>
         </div>
         <div className="vs-d-poster">
