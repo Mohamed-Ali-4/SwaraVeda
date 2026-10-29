@@ -61,7 +61,7 @@ export default function App() {
         <AuthProvider>
           <Routes>
             <Route path="/login" element={<Navigate to="/" replace />} />
-            <Route path="/dialects" element={<Gate><DialectShelf /></Gate>} />
+            <Route path="/dialects/shelf" element={<Gate><DialectShelf /></Gate>} />
             <Route element={<Gate />}>
               <Route path="/" element={<Dashboard />} />
               <Route path="/register" element={<Navigate to="/" replace />} />
@@ -69,7 +69,8 @@ export default function App() {
               <Route path="/recordings/new" element={<NewRecording />} />
               <Route path="/recordings/:id" element={<RecordingDetail />} />
               <Route path="/search" element={<Search />} />
-              <Route path="/dialects/list" element={<Dialects />} />
+              <Route path="/dialects" element={<Dialects />} />
+              <Route path="/dialects/list" element={<Navigate to="/dialects" replace />} />
               <Route path="/review" element={<Review />} />
               <Route path="/profile" element={<Profile />} />
               <Route path="/manage" element={<ProtectedRoute><Manage /></ProtectedRoute>} />
