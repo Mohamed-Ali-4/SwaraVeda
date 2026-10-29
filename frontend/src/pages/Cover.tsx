@@ -1,10 +1,11 @@
-import { useEffect, useRef, useState, type FormEvent, type InputHTMLAttributes } from 'react';
+import { useEffect, useRef, useState, type FormEvent, type InputHTMLAttributes, type PointerEvent as ReactPointerEvent } from 'react';
 import { useLocation } from 'react-router-dom';
 import { HiOutlineEye, HiOutlineEyeOff, HiOutlineMicrophone, HiOutlineSparkles, HiOutlineShieldCheck } from 'react-icons/hi';
 import api, { errorMessage } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { useToast } from '../lib/toast';
 import BrandLogo from '../components/BrandLogo';
+import VoiceField from '../components/VoiceField';
 
 declare global {
   interface Window {
@@ -89,6 +90,21 @@ function GoogleButton({ onCredential }: { onCredential: (credential: string) => 
   );
 }
 
+// Dialect names in their own scripts, drifting behind the page at different depths.
+const FLOATING: { text: string; font: string; x: number; y: number; size: number; depth: number }[] = [
+  { text: 'ತುಳು', font: 'Noto Sans Kannada', x: 6, y: 14, size: 54, depth: 26 },
+  { text: 'ᱥᱟᱱᱛᱟᱲᱤ', font: 'Noto Sans Ol Chiki', x: 72, y: 8, size: 40, depth: 14 },
+  { text: 'भोजपुरी', font: 'Noto Sans Devanagari', x: 40, y: 88, size: 46, depth: 20 },
+  { text: 'ꯃꯩꯇꯩꯂꯣꯟ', font: 'Noto Sans Meetei Mayek', x: 84, y: 70, size: 38, depth: 30 },
+  { text: 'தோடா', font: 'Noto Sans Tamil', x: 14, y: 72, size: 42, depth: 12 },
+  { text: 'ଜୁଆଙ୍ଗ', font: 'Noto Sans Oriya', x: 58, y: 30, size: 34, depth: 34 },
+  { text: 'കോട്ട', font: 'Noto Sans Malayalam', x: 30, y: 4, size: 32, depth: 18 },
+  { text: 'కోయ', font: 'Noto Sans Telugu', x: 92, y: 40, size: 44, depth: 22 },
+  { text: 'કચ્છી', font: 'Noto Sans Gujarati', x: 2, y: 44, size: 36, depth: 16 },
+  { text: 'টোটো', font: 'Noto Sans Bengali', x: 66, y: 94, size: 34, depth: 28 },
+  { text: 'ལ་དྭགས', font: 'Noto Serif Tibetan', x: 48, y: 58, size: 30, depth: 10 },
+];
+
 export default function Cover() {
   const { login, register, loginWithGoogle } = useAuth();
   const toast = useToast();
@@ -126,14 +142,64 @@ export default function Cover() {
 
   const switchMode = (m: 'signin' | 'signup') => { setMode(m); setError(''); };
 
+  // The colour of the script the logo is showing; the background wave and the card's light follow it.
+  const [accent, setAccent] = useState('#FFB224');
+  const page = useRef<HTMLDivElement>(null);
+  const card = useRef<HTMLElement>(null);
+  const still = typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // Background words drift against the pointer; nearer ones move more.
+  const onPageMove = (e: ReactPointerEvent) => {
+    if (still || e.pointerType !== 'mouse' || !page.current) return;
+    page.current.style.setProperty('--px', ((e.clientX / window.innerWidth) * 2 - 1).toFixed(3));
+    page.current.style.setProperty('--py', ((e.clientY / window.innerHeight) * 2 - 1).toFixed(3));
+  };
+  // The card leans a little toward the pointer, with a soft light where it is.
+  const onCardMove = (e: ReactPointerEvent) => {
+    const el = card.current;
+    if (still || e.pointerType !== 'mouse' || !el) return;
+    const r = el.getBoundingClientRect();
+    const x = (e.clientX - r.left) / r.width;
+    const y = (e.clientY - r.top) / r.height;
+    el.style.setProperty('--ry', `${((x - 0.5) * 6).toFixed(2)}deg`);
+    el.style.setProperty('--rx', `${((0.5 - y) * 5).toFixed(2)}deg`);
+    el.style.setProperty('--gx', `${(x * 100).toFixed(1)}%`);
+    el.style.setProperty('--gy', `${(y * 100).toFixed(1)}%`);
+  };
+  const onCardLeave = () => {
+    card.current?.style.setProperty('--rx', '0deg');
+    card.current?.style.setProperty('--ry', '0deg');
+  };
+
   return (
-    <div className="relative min-h-screen overflow-hidden bg-[#0B0B0D] text-white" style={{ fontFamily: 'Nunito, system-ui, sans-serif' }}>
-      <div aria-hidden="true" className="pointer-events-none absolute -left-40 -top-40 h-[34rem] w-[34rem] rounded-full bg-[#FF7A2F]/20 blur-[120px]" />
-      <div aria-hidden="true" className="pointer-events-none absolute -bottom-48 -right-32 h-[36rem] w-[36rem] rounded-full bg-[#2EE6C5]/15 blur-[130px]" />
+    <div ref={page} onPointerMove={onPageMove} className="cv-page relative min-h-screen overflow-hidden bg-[#0B0B0D] text-white" style={{ fontFamily: 'Nunito, system-ui, sans-serif' }}>
+      <style>{`
+        .cv-page { --px: 0; --py: 0; }
+        @keyframes cv-float { 0%, 100% { translate: 0 0 } 50% { translate: 0 -14px } }
+        .cv-word { transform: translate(calc(var(--px) * var(--d) * -1px), calc(var(--py) * var(--d) * -1px)); transition: transform 1.2s cubic-bezier(.2,.8,.2,1); animation: cv-float var(--t) ease-in-out infinite; }
+        .cv-card { --rx: 0deg; --ry: 0deg; --gx: 50%; --gy: 0%; transform: perspective(1200px) rotateX(var(--rx)) rotateY(var(--ry)); transition: transform .5s cubic-bezier(.2,.8,.2,1); }
+        .cv-card::before { content: ""; position: absolute; inset: 0; z-index: -1; border-radius: inherit; pointer-events: none;
+          background: radial-gradient(420px circle at var(--gx) var(--gy), color-mix(in srgb, var(--accent) 16%, transparent), transparent 60%); transition: background .3s; }
+        @keyframes cv-rise { from { opacity: 0; transform: translateY(18px) } to { opacity: 1; transform: none } }
+        .cv-rise { animation: cv-rise .8s cubic-bezier(.2,.8,.2,1) both; }
+        @media (prefers-reduced-motion: reduce) { .cv-word, .cv-rise { animation: none } .cv-card { transform: none } }
+      `}</style>
+      <VoiceField color={accent} />
+      <div aria-hidden="true" className="pointer-events-none absolute -left-40 -top-40 h-[34rem] w-[34rem] rounded-full blur-[120px] transition-colors duration-700" style={{ background: `${accent}2e` }} />
+      <div aria-hidden="true" className="pointer-events-none absolute -bottom-48 -right-32 h-[36rem] w-[36rem] rounded-full bg-[#2EE6C5]/10 blur-[130px]" />
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0 select-none">
+        {FLOATING.map((f, n) => (
+          <span key={n} className="cv-word absolute whitespace-nowrap text-white/[0.07]"
+            style={{ left: `${f.x}%`, top: `${f.y}%`, fontSize: f.size, fontFamily: `"${f.font}", sans-serif`, fontWeight: 600,
+              ['--d' as string]: f.depth, ['--t' as string]: `${7 + (n % 5) * 1.6}s`, animationDelay: `${-n * 0.9}s` }}>
+            {f.text}
+          </span>
+        ))}
+      </div>
 
       <main className="relative mx-auto grid min-h-screen max-w-6xl content-center gap-10 px-5 py-12 lg:grid-cols-[1.15fr_1fr] lg:gap-x-16 lg:gap-y-8">
         <div className="order-1 lg:order-none lg:col-start-1 lg:row-start-1 lg:self-end">
-          <BrandLogo />
+          <BrandLogo onAccent={setAccent} />
         </div>
         <section className="order-3 lg:order-none lg:col-start-1 lg:row-start-2 lg:self-start">
           <p className="mx-auto max-w-xl text-center text-[17px] leading-relaxed text-white/70 lg:text-left">
@@ -146,8 +212,8 @@ export default function Cover() {
               { icon: HiOutlineMicrophone, t: 'Record', d: 'Songs, stories, everyday talk' },
               { icon: HiOutlineSparkles, t: 'Vani transcribes', d: 'AI drafts it; speakers fix it' },
               { icon: HiOutlineShieldCheck, t: 'Preserve', d: 'Searchable for generations' },
-            ].map(({ icon: Icon, t, d }) => (
-              <li key={t} className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+            ].map(({ icon: Icon, t, d }, i) => (
+              <li key={t} className="cv-rise rounded-2xl border border-white/10 bg-white/[0.03] p-4 transition duration-500 hover:-translate-y-1 hover:border-white/25 hover:bg-white/[0.06]" style={{ animationDelay: `${0.25 + i * 0.08}s` }}>
                 <Icon className="h-6 w-6 text-[#FFB224]" />
                 <p className="mt-2 font-bold">{t}</p>
                 <p className="text-sm text-white/55">{d}</p>
@@ -156,7 +222,8 @@ export default function Cover() {
           </ul>
         </section>
 
-        <section className="order-2 lg:order-none mx-auto w-full max-w-md rounded-3xl lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:self-center border border-white/10 bg-white/[0.05] p-7 shadow-[0_30px_80px_-20px_rgba(0,0,0,.6)] backdrop-blur-xl sm:p-9">
+        <section ref={card} onPointerMove={onCardMove} onPointerLeave={onCardLeave} style={{ ['--accent' as string]: accent }}
+          className="cv-card cv-rise relative order-2 lg:order-none mx-auto w-full max-w-md rounded-3xl lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:self-center border border-white/10 bg-white/[0.05] p-7 shadow-[0_30px_80px_-20px_rgba(0,0,0,.6)] backdrop-blur-xl sm:p-9">
           <div className="mb-7 grid grid-cols-2 rounded-full bg-white/[0.06] p-1" role="tablist">
             {(['signin', 'signup'] as const).map((m) => (
               <button key={m} role="tab" aria-selected={mode === m} onClick={() => switchMode(m)}

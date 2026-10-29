@@ -15,7 +15,7 @@ const SWARA = [
   { text: 'ਸਵਰ', lang: 'pa', name: 'Punjabi', font: 'Noto Sans Gurmukhi', color: '#FFE45C' },
 ];
 
-const HOLD_MS = 2400; // how long each script stays on screen
+const HOLD_MS = 1000; // how long each script stays on screen
 const BURST = [10, 18, 30, 46, 64, 82, 96, 82, 64, 46, 30, 18, 10];
 
 function Burst({ x, delay }: { x: number; delay: number }) {
@@ -42,23 +42,33 @@ function Burst({ x, delay }: { x: number; delay: number }) {
  * own colour, while "Veda" stays put over a voice wave that jumps with every
  * change.
  */
-export default function BrandLogo({ size = 'lg', tagline = true }: { size?: 'md' | 'lg'; tagline?: boolean }) {
+export default function BrandLogo({ size = 'lg', tagline = true, onAccent }: {
+  size?: 'md' | 'lg'; tagline?: boolean; onAccent?: (color: string) => void;
+}) {
   const [i, setI] = useState(0);
   const [prev, setPrev] = useState<number | null>(null);
   const [widths, setWidths] = useState<number[]>([]);
   const measure = useRef<HTMLSpanElement>(null);
   const wave = useRef<SVGGElement>(null);
 
+  const [paused, setPaused] = useState(false);
+  const show = (n: number) => {
+    if (n === i) return;
+    setPrev(i);
+    setI(n);
+  };
+
+  // Next script every second; pointing at the logo holds the current one.
   useEffect(() => {
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-    const t = window.setInterval(() => {
-      setI((n) => {
-        setPrev(n);
-        return (n + 1) % SWARA.length;
-      });
+    if (paused || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const t = window.setTimeout(() => {
+      setPrev(i);
+      setI((i + 1) % SWARA.length);
     }, HOLD_MS);
-    return () => window.clearInterval(t);
-  }, []);
+    return () => window.clearTimeout(t);
+  }, [i, paused]);
+
+  useEffect(() => onAccent?.(SWARA[i].color), [i, onAccent]);
 
   // Each script is a different width; measure them once the fonts are in so
   // the gap before "Veda" can glide instead of jump.
@@ -78,7 +88,7 @@ export default function BrandLogo({ size = 'lg', tagline = true }: { size?: 'md'
     if (prev === null) return;
     wave.current?.animate(
       [{ transform: 'scaleY(1)' }, { transform: 'scaleY(1.45)' }, { transform: 'scaleY(1)' }],
-      { duration: 700, easing: 'cubic-bezier(.3,1.6,.5,1)' },
+      { duration: 500, easing: 'cubic-bezier(.3,1.6,.5,1)' },
     );
   }, [i, prev]);
 
@@ -90,7 +100,7 @@ export default function BrandLogo({ size = 'lg', tagline = true }: { size?: 'md'
     <div className="sv-root relative select-none" style={{ ['--sv' as string]: swara.color }}>
       <style>{`
         @property --sv { syntax: '<color>'; inherits: true; initial-value: #FFB224; }
-        .sv-root { transition: --sv .9s ease; }
+        .sv-root { transition: --sv .5s ease; }
         @keyframes sv-pulse { 0%, 100% { transform: scaleY(.35) } 50% { transform: scaleY(1) } }
         .sv-bar { fill: var(--sv); opacity: .5; transform-box: fill-box; transform-origin: center; animation: sv-pulse 1.8s ease-in-out infinite; }
         .sv-stop { stop-color: var(--sv); }
@@ -103,9 +113,9 @@ export default function BrandLogo({ size = 'lg', tagline = true }: { size?: 'md'
         @keyframes sv-out {
           to { opacity: 0; transform: translateY(-.5em) scale(.92); filter: blur(8px) }
         }
-        .sv-in { animation: sv-pop .85s cubic-bezier(.2,.8,.2,1) both; }
-        .sv-out { animation: sv-out .45s cubic-bezier(.4,0,.2,1) both; }
-        .sv-slot { transition: width .75s cubic-bezier(.65,0,.35,1); }
+        .sv-in { animation: sv-pop .55s cubic-bezier(.2,.8,.2,1) both; }
+        .sv-out { animation: sv-out .3s cubic-bezier(.4,0,.2,1) both; }
+        .sv-slot { transition: width .45s cubic-bezier(.65,0,.35,1); }
         @keyframes sv-flash { 0% { opacity: .9; transform: scale(.6) } 100% { opacity: 0; transform: scale(1.6) } }
         .sv-flash { animation: sv-flash .9s ease-out both; }
         @media (prefers-reduced-motion: reduce) { .sv-bar, .sv-in, .sv-out, .sv-flash { animation: none } .sv-slot { transition: none } }
@@ -144,7 +154,11 @@ export default function BrandLogo({ size = 'lg', tagline = true }: { size?: 'md'
         </svg>
 
         <h1
-          className={`relative flex items-baseline justify-center gap-[0.22em] font-extrabold tracking-tight text-white ${
+          onMouseEnter={() => setPaused(true)}
+          onMouseLeave={() => setPaused(false)}
+          onClick={() => show((i + 1) % SWARA.length)}
+          title="Click for the next language"
+          className={`relative flex cursor-pointer items-baseline justify-center gap-[0.22em] font-extrabold tracking-tight text-white ${
             big ? 'text-[3.4rem] sm:text-[4.6rem]' : 'text-4xl'
           }`}
           style={{ fontFamily: 'Nunito, ui-rounded, system-ui, sans-serif', lineHeight: 1.3 }}
@@ -201,17 +215,26 @@ export default function BrandLogo({ size = 'lg', tagline = true }: { size?: 'md'
         </span>
       </div>
 
-      <div className="mt-3 flex flex-col items-center gap-2.5" aria-hidden="true">
-        <p key={swara.lang} className="sv-in text-xs font-bold uppercase tracking-[0.3em]" style={{ color: swara.color }}>
+      <div className="mt-3 flex flex-col items-center gap-2.5">
+        <p aria-hidden="true" key={swara.lang} className="sv-in text-xs font-bold uppercase tracking-[0.3em]" style={{ color: swara.color }}>
           {swara.name}
         </p>
-        <div className="flex gap-1.5">
+        <div className="flex gap-0.5">
           {SWARA.map((s, n) => (
-            <span
+            <button
               key={s.lang}
-              className="h-1 rounded-full transition-all duration-700"
-              style={{ width: n === i ? 22 : 6, background: n === i ? swara.color : 'rgba(255,255,255,.18)' }}
-            />
+              type="button"
+              onClick={() => show(n)}
+              onMouseEnter={() => setPaused(true)}
+              onMouseLeave={() => setPaused(false)}
+              aria-label={`Show Swara in ${s.name}`}
+              className="group flex h-4 items-center px-[3px]"
+            >
+              <span
+                className="block h-1 rounded-full transition-all duration-500 group-hover:h-1.5"
+                style={{ width: n === i ? 22 : 6, background: n === i ? swara.color : 'rgba(255,255,255,.22)' }}
+              />
+            </button>
           ))}
         </div>
       </div>
