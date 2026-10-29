@@ -7,7 +7,7 @@ import { useDialects } from '../lib/dialects';
 import { input } from '../lib/styles';
 import { useToast } from '../lib/toast';
 import type { Dialect } from '../lib/types';
-import { Alert, Button, Card, EmptyState, Field, PageHeader } from '../components/ui';
+import { Alert, Button, ButtonLink, Card, EmptyState, Field, PageHeader } from '../components/ui';
 
 // UNESCO's scale, from least to most endangered.
 const endangerment: { value: string; className: string; level: number }[] = [
@@ -114,7 +114,12 @@ export default function Dialects() {
         eyebrow="Dialects"
         title="Languages in the archive"
         subtitle="Each dialect lists where it’s spoken, its script, and how endangered it is on UNESCO’s scale."
-        actions={user && !showForm && <Button onClick={() => setShowForm(true)} icon={<HiOutlinePlus className="w-5 h-5" />}>Add a dialect</Button>}
+        actions={
+          <>
+            <ButtonLink to="/dialects" variant="secondary">Open the shelf</ButtonLink>
+            {user && !showForm && <Button onClick={() => setShowForm(true)} icon={<HiOutlinePlus className="w-5 h-5" />}>Add a dialect</Button>}
+          </>
+        }
       />
 
       {showForm && (

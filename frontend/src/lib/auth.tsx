@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import api from './api';
+import { safeLocal } from './storage';
 
 interface User {
   id: string;
@@ -26,15 +27,23 @@ const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
+  const [token, setToken] = useState<string | null>(safeLocal.get('token'));
   const [loading, setLoading] = useState(true);
+
+  const remember = (u: User) => {
+    safeLocal.set('user', JSON.stringify(u));
+    setUser(u);
+  };
 
   useEffect(() => {
     if (token) {
       api.get('/auth/me')
-        .then((res) => setUser(res.data))
-        .catch(() => {
-          localStorage.removeItem('token');
+        .then((res) => remember(res.data))
+        .catch((err) => {
+          // No connection: carry on as the user we last saw, so recording works offline.
+          const cached = !err?.response && safeLocal.get('user');
+          if (cached) return setUser(JSON.parse(cached));
+          safeLocal.remove('token');
           setToken(null);
         })
         .finally(() => setLoading(false));
@@ -46,9 +55,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Stores the token and loads the user before resolving, so the next page
   // already sees the signed-in user.
   const adopt = async (access_token: string) => {
-    localStorage.setItem('token', access_token);
+    safeLocal.set('token', access_token);
     const me = await api.get('/auth/me');
-    setUser(me.data);
+    remember(me.data);
     setToken(access_token);
   };
 
@@ -69,11 +78,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const refreshUser = async () => {
     const res = await api.get('/auth/me');
-    setUser(res.data);
+    remember(res.data);
   };
 
   const logout = () => {
-    localStorage.removeItem('token');
+    safeLocal.remove('token');
+    safeLocal.remove('user');
     setToken(null);
     setUser(null);
   };

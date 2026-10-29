@@ -21,7 +21,7 @@ declare global {
 
 const field =
   'w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-[15px] text-white placeholder:text-white/35 ' +
-  'transition focus:border-violet-400 focus:bg-white/[0.07] focus:outline-none focus:ring-4 focus:ring-violet-500/20';
+  'transition focus:border-[#FFB224] focus:bg-white/[0.07] focus:outline-none focus:ring-4 focus:ring-[#FFB224]/20';
 const labelCls = 'mb-1.5 block text-sm font-medium text-white/75';
 
 function Password(props: InputHTMLAttributes<HTMLInputElement>) {
@@ -127,10 +127,9 @@ export default function Cover() {
   const switchMode = (m: 'signin' | 'signup') => { setMode(m); setError(''); };
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-[#07060d] text-white" style={{ fontFamily: 'Nunito, system-ui, sans-serif' }}>
-      <div aria-hidden="true" className="pointer-events-none absolute -left-40 -top-40 h-[34rem] w-[34rem] rounded-full bg-fuchsia-600/25 blur-[120px]" />
-      <div aria-hidden="true" className="pointer-events-none absolute -bottom-48 -right-32 h-[36rem] w-[36rem] rounded-full bg-cyan-500/20 blur-[130px]" />
-      <div aria-hidden="true" className="pointer-events-none absolute left-1/2 top-1/3 h-72 w-72 -translate-x-1/2 rounded-full bg-violet-600/15 blur-[100px]" />
+    <div className="relative min-h-screen overflow-hidden bg-[#0B0B0D] text-white" style={{ fontFamily: 'Nunito, system-ui, sans-serif' }}>
+      <div aria-hidden="true" className="pointer-events-none absolute -left-40 -top-40 h-[34rem] w-[34rem] rounded-full bg-[#FF7A2F]/20 blur-[120px]" />
+      <div aria-hidden="true" className="pointer-events-none absolute -bottom-48 -right-32 h-[36rem] w-[36rem] rounded-full bg-[#2EE6C5]/15 blur-[130px]" />
 
       <main className="relative mx-auto grid min-h-screen max-w-6xl content-center gap-10 px-5 py-12 lg:grid-cols-[1.15fr_1fr] lg:gap-x-16 lg:gap-y-8">
         <div className="order-1 lg:order-none lg:col-start-1 lg:row-start-1 lg:self-end">
@@ -149,7 +148,7 @@ export default function Cover() {
               { icon: HiOutlineShieldCheck, t: 'Preserve', d: 'Searchable for generations' },
             ].map(({ icon: Icon, t, d }) => (
               <li key={t} className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-                <Icon className="h-6 w-6 text-violet-300" />
+                <Icon className="h-6 w-6 text-[#FFB224]" />
                 <p className="mt-2 font-bold">{t}</p>
                 <p className="text-sm text-white/55">{d}</p>
               </li>
@@ -162,7 +161,7 @@ export default function Cover() {
             {(['signin', 'signup'] as const).map((m) => (
               <button key={m} role="tab" aria-selected={mode === m} onClick={() => switchMode(m)}
                 className={`rounded-full py-2.5 text-sm font-bold transition ${
-                  mode === m ? 'bg-gradient-to-r from-fuchsia-500 to-violet-500 text-white shadow-lg' : 'text-white/60 hover:text-white'
+                  mode === m ? 'bg-white text-[#0B0B0D] shadow-lg' : 'text-white/60 hover:text-white'
                 }`}>
                 {m === 'signin' ? 'Sign in' : 'Create account'}
               </button>
@@ -217,14 +216,14 @@ export default function Cover() {
               </>
             )}
             <button type="submit" disabled={busy}
-              className="w-full rounded-full bg-gradient-to-r from-fuchsia-500 via-violet-500 to-cyan-400 py-3.5 text-base font-extrabold text-white shadow-[0_10px_30px_-8px_rgba(168,85,247,.7)] transition hover:brightness-110 disabled:opacity-60">
+              className="w-full rounded-full bg-[#FFB224] py-3.5 text-base font-extrabold text-[#0B0B0D] shadow-[0_10px_30px_-8px_rgba(255,178,36,.6)] transition hover:bg-[#FFC24D] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#FFB224]/40 disabled:opacity-60">
               {busy ? 'Please wait…' : mode === 'signin' ? 'Sign in' : 'Create account'}
             </button>
           </form>
 
           <p className="mt-6 text-center text-sm text-white/55">
             {mode === 'signin' ? 'New to SwaraVeda? ' : 'Already have an account? '}
-            <button onClick={() => switchMode(mode === 'signin' ? 'signup' : 'signin')} className="font-bold text-violet-300 hover:text-white">
+            <button onClick={() => switchMode(mode === 'signin' ? 'signup' : 'signin')} className="font-bold text-[#FFB224] hover:text-white">
               {mode === 'signin' ? 'Create an account' : 'Sign in'}
             </button>
           </p>
