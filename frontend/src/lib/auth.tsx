@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import api from './api';
+import { safeLocal } from './storage';
 
 interface User {
   id: string;
@@ -26,7 +27,7 @@ const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
+  const [token, setToken] = useState<string | null>(safeLocal.get('token'));
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -34,7 +35,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       api.get('/auth/me')
         .then((res) => setUser(res.data))
         .catch(() => {
-          localStorage.removeItem('token');
+          safeLocal.remove('token');
           setToken(null);
         })
         .finally(() => setLoading(false));
@@ -46,7 +47,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Stores the token and loads the user before resolving, so the next page
   // already sees the signed-in user.
   const adopt = async (access_token: string) => {
-    localStorage.setItem('token', access_token);
+    safeLocal.set('token', access_token);
     const me = await api.get('/auth/me');
     setUser(me.data);
     setToken(access_token);
@@ -73,7 +74,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = () => {
-    localStorage.removeItem('token');
+    safeLocal.remove('token');
     setToken(null);
     setUser(null);
   };

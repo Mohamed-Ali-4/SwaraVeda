@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type DragEvent, type FormEvent, type ReactNode } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import {
   HiOutlineMicrophone, HiOutlineUpload, HiOutlineStop, HiOutlineTrash, HiOutlineCheck,
@@ -157,12 +157,13 @@ export default function NewRecording() {
   const navigate = useNavigate();
   const toast = useToast();
   const { dialects } = useDialects();
+  const [params] = useSearchParams();
   const [step, setStep] = useState(0);
   const [source, setSource] = useState<Source | null>(null);
   const [dragging, setDragging] = useState(false);
   const [error, setError] = useState('');
   const [form, setForm] = useState({
-    title: '', dialect_id: '', genre: '', speaker_name: '', speaker_age_group: '',
+    title: '', dialect_id: params.get('dialect') ?? '', genre: '', speaker_name: '', speaker_age_group: '',
     recorded_place: '', recorded_at: '', notes: '',
   });
   const [consentPublic, setConsentPublic] = useState(false);
@@ -343,7 +344,7 @@ export default function NewRecording() {
               <input id="rec-title" value={form.title} onChange={setField('title')} required autoFocus className={input} />
             </Field>
             <div className="grid gap-5 sm:grid-cols-2">
-              <Field label="Dialect" htmlFor="rec-dialect" hint={<>Missing? <Link to="/dialects" target="_blank" className="text-saffron-600">Add a dialect</Link>, then reload.</>}>
+              <Field label="Dialect" htmlFor="rec-dialect" hint={<>Missing? <Link to="/dialects/list" target="_blank" className="text-saffron-600">Add a dialect</Link>, then reload.</>}>
                 <select id="rec-dialect" value={form.dialect_id} onChange={setField('dialect_id')} className={input}>
                   <option value="">Not sure</option>
                   {dialects.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}

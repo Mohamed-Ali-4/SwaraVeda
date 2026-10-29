@@ -1,11 +1,12 @@
 import axios from 'axios';
+import { safeLocal } from './storage';
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || '/api',
 });
 
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
+  const token = safeLocal.get('token');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -18,9 +19,9 @@ api.interceptors.response.use(
     // An expired session: forget it and go back to the cover page. A failed
     // sign-in (also 401) is left to the form to explain.
     const url: string = err.config?.url ?? '';
-    if (err.response?.status === 401 && !url.startsWith('/auth/') && localStorage.getItem('token')) {
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
+    if (err.response?.status === 401 && !url.startsWith('/auth/') && safeLocal.get('token')) {
+      safeLocal.remove('token');
+      safeLocal.remove('user');
       window.location.href = '/';
     }
     return Promise.reject(err);

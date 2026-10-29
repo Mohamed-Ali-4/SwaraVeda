@@ -1,20 +1,21 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 
-// "Swara" (voice, musical note) in the scripts of India's languages.
+// "Swara" (voice, musical note) in the scripts of India's languages, each
+// with its own colour so every change reads as a new voice.
 const SWARA = [
-  { text: 'Swara', lang: 'en', name: 'English', font: 'Nunito' },
-  { text: 'स्वर', lang: 'hi', name: 'Hindi', font: 'Noto Sans Devanagari' },
-  { text: 'ஸ்வர', lang: 'ta', name: 'Tamil', font: 'Noto Sans Tamil' },
-  { text: 'స్వర', lang: 'te', name: 'Telugu', font: 'Noto Sans Telugu' },
-  { text: 'ಸ್ವರ', lang: 'kn', name: 'Kannada', font: 'Noto Sans Kannada' },
-  { text: 'സ്വര', lang: 'ml', name: 'Malayalam', font: 'Noto Sans Malayalam' },
-  { text: 'স্বর', lang: 'bn', name: 'Bengali', font: 'Noto Sans Bengali' },
-  { text: 'સ્વર', lang: 'gu', name: 'Gujarati', font: 'Noto Sans Gujarati' },
-  { text: 'ସ୍ୱର', lang: 'or', name: 'Odia', font: 'Noto Sans Oriya' },
-  { text: 'ਸਵਰ', lang: 'pa', name: 'Punjabi', font: 'Noto Sans Gurmukhi' },
+  { text: 'Swara', lang: 'en', name: 'English', font: 'Nunito', color: '#FFB224' },
+  { text: 'स्वर', lang: 'hi', name: 'Hindi', font: 'Noto Sans Devanagari', color: '#FF7A2F' },
+  { text: 'ஸ்வர', lang: 'ta', name: 'Tamil', font: 'Noto Sans Tamil', color: '#FF5468' },
+  { text: 'స్వర', lang: 'te', name: 'Telugu', font: 'Noto Sans Telugu', color: '#2EE6C5' },
+  { text: 'ಸ್ವರ', lang: 'kn', name: 'Kannada', font: 'Noto Sans Kannada', color: '#FFD23F' },
+  { text: 'സ്വര', lang: 'ml', name: 'Malayalam', font: 'Noto Sans Malayalam', color: '#5BE37D' },
+  { text: 'স্বর', lang: 'bn', name: 'Bengali', font: 'Noto Sans Bengali', color: '#47C4FF' },
+  { text: 'સ્વર', lang: 'gu', name: 'Gujarati', font: 'Noto Sans Gujarati', color: '#FF9A3D' },
+  { text: 'ସ୍ୱର', lang: 'or', name: 'Odia', font: 'Noto Sans Oriya', color: '#3BE0D0' },
+  { text: 'ਸਵਰ', lang: 'pa', name: 'Punjabi', font: 'Noto Sans Gurmukhi', color: '#FFE45C' },
 ];
 
-// Bar heights of the two voice "bursts" behind the wordmark, as in the logo.
+const HOLD_MS = 2400; // how long each script stays on screen
 const BURST = [10, 18, 30, 46, 64, 82, 96, 82, 64, 46, 30, 18, 10];
 
 function Burst({ x, delay }: { x: number; delay: number }) {
@@ -28,7 +29,6 @@ function Burst({ x, delay }: { x: number; delay: number }) {
           width={3.2}
           height={h}
           rx={1.6}
-          fill="url(#sv-wave)"
           className="sv-bar"
           style={{ animationDelay: `${delay + i * 0.07}s` }}
         />
@@ -38,29 +38,86 @@ function Burst({ x, delay }: { x: number; delay: number }) {
 }
 
 /**
- * The SwaraVeda wordmark: "Swara" cycles through Indian scripts every second
- * while "Veda" stays put, over a pulsing magenta-to-cyan voice wave.
+ * The SwaraVeda wordmark: "Swara" rolls through India's scripts, each in its
+ * own colour, while "Veda" stays put over a voice wave that jumps with every
+ * change.
  */
 export default function BrandLogo({ size = 'lg', tagline = true }: { size?: 'md' | 'lg'; tagline?: boolean }) {
   const [i, setI] = useState(0);
+  const [prev, setPrev] = useState<number | null>(null);
+  const [widths, setWidths] = useState<number[]>([]);
+  const measure = useRef<HTMLSpanElement>(null);
+  const wave = useRef<SVGGElement>(null);
+
   useEffect(() => {
-    const t = window.setInterval(() => setI((n) => (n + 1) % SWARA.length), 1000);
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const t = window.setInterval(() => {
+      setI((n) => {
+        setPrev(n);
+        return (n + 1) % SWARA.length;
+      });
+    }, HOLD_MS);
     return () => window.clearInterval(t);
   }, []);
+
+  // Each script is a different width; measure them once the fonts are in so
+  // the gap before "Veda" can glide instead of jump.
+  useLayoutEffect(() => {
+    const read = () => {
+      const el = measure.current;
+      if (el) setWidths(Array.from(el.children, (c) => (c as HTMLElement).getBoundingClientRect().width));
+    };
+    read();
+    document.fonts?.ready.then(read);
+    window.addEventListener('resize', read);
+    return () => window.removeEventListener('resize', read);
+  }, [size]);
+
+  // Kick the voice wave on every change.
+  useEffect(() => {
+    if (prev === null) return;
+    wave.current?.animate(
+      [{ transform: 'scaleY(1)' }, { transform: 'scaleY(1.45)' }, { transform: 'scaleY(1)' }],
+      { duration: 700, easing: 'cubic-bezier(.3,1.6,.5,1)' },
+    );
+  }, [i, prev]);
+
   const swara = SWARA[i];
   const big = size === 'lg';
+  const width = widths[i];
 
   return (
-    <div className="relative select-none">
+    <div className="sv-root relative select-none" style={{ ['--sv' as string]: swara.color }}>
       <style>{`
+        @property --sv { syntax: '<color>'; inherits: true; initial-value: #FFB224; }
+        .sv-root { transition: --sv .9s ease; }
         @keyframes sv-pulse { 0%, 100% { transform: scaleY(.35) } 50% { transform: scaleY(1) } }
-        .sv-bar { transform-box: fill-box; transform-origin: center; animation: sv-pulse 1.6s ease-in-out infinite; }
-        @keyframes sv-in { from { opacity: 0; transform: translateY(.18em) scale(.96); filter: blur(4px) } to { opacity: 1; transform: none; filter: none } }
-        .sv-word { animation: sv-in .45s cubic-bezier(.2,.8,.2,1) both; }
-        @media (prefers-reduced-motion: reduce) { .sv-bar, .sv-word { animation: none } }
+        .sv-bar { fill: var(--sv); opacity: .5; transform-box: fill-box; transform-origin: center; animation: sv-pulse 1.8s ease-in-out infinite; }
+        .sv-stop { stop-color: var(--sv); }
+        @keyframes sv-pop {
+          0% { opacity: 0; transform: translateY(.55em) scale(.7); filter: blur(10px) }
+          55% { opacity: 1; filter: blur(0) }
+          75% { transform: translateY(-.04em) scale(1.08) }
+          100% { opacity: 1; transform: none; filter: none }
+        }
+        @keyframes sv-out {
+          to { opacity: 0; transform: translateY(-.5em) scale(.92); filter: blur(8px) }
+        }
+        .sv-in { animation: sv-pop .85s cubic-bezier(.2,.8,.2,1) both; }
+        .sv-out { animation: sv-out .45s cubic-bezier(.4,0,.2,1) both; }
+        .sv-slot { transition: width .75s cubic-bezier(.65,0,.35,1); }
+        @keyframes sv-flash { 0% { opacity: .9; transform: scale(.6) } 100% { opacity: 0; transform: scale(1.6) } }
+        .sv-flash { animation: sv-flash .9s ease-out both; }
+        @media (prefers-reduced-motion: reduce) { .sv-bar, .sv-in, .sv-out, .sv-flash { animation: none } .sv-slot { transition: none } }
       `}</style>
 
       <div className="relative">
+        {/* Soft halo in the current script's colour. */}
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute left-1/2 top-1/2 h-40 w-[28rem] max-w-full -translate-x-1/2 -translate-y-1/2 rounded-full opacity-30 blur-[70px]"
+          style={{ background: 'var(--sv)' }}
+        />
         <svg
           className="absolute inset-x-0 top-1/2 -translate-y-1/2 w-full pointer-events-none"
           viewBox="0 0 600 110"
@@ -69,23 +126,20 @@ export default function BrandLogo({ size = 'lg', tagline = true }: { size?: 'md'
           style={{ height: big ? '7.5rem' : '4.5rem' }}
         >
           <defs>
-            <linearGradient id="sv-wave" x1="0" x2="1" y1="0" y2="0">
-              <stop offset="0%" stopColor="#d946ef" />
-              <stop offset="50%" stopColor="#8b5cf6" />
-              <stop offset="100%" stopColor="#22d3ee" />
-            </linearGradient>
             <linearGradient id="sv-line" x1="0" x2="1">
-              <stop offset="0%" stopColor="#d946ef" stopOpacity="0" />
-              <stop offset="12%" stopColor="#d946ef" />
-              <stop offset="50%" stopColor="#8b5cf6" />
-              <stop offset="88%" stopColor="#22d3ee" />
-              <stop offset="100%" stopColor="#22d3ee" stopOpacity="0" />
+              <stop offset="0%" className="sv-stop" stopOpacity="0" />
+              <stop offset="20%" className="sv-stop" />
+              <stop offset="50%" stopColor="#ffffff" stopOpacity=".55" />
+              <stop offset="80%" className="sv-stop" />
+              <stop offset="100%" className="sv-stop" stopOpacity="0" />
             </linearGradient>
           </defs>
           <line x1="0" y1="55" x2="600" y2="55" stroke="url(#sv-line)" strokeWidth="1.6" />
           <g transform="translate(0 55)">
-            <Burst x={150} delay={0} />
-            <Burst x={460} delay={0.4} />
+            <g ref={wave} style={{ transformOrigin: '0 0' }}>
+              <Burst x={150} delay={0} />
+              <Burst x={460} delay={0.4} />
+            </g>
           </g>
         </svg>
 
@@ -93,27 +147,80 @@ export default function BrandLogo({ size = 'lg', tagline = true }: { size?: 'md'
           className={`relative flex items-baseline justify-center gap-[0.22em] font-extrabold tracking-tight text-white ${
             big ? 'text-[3.4rem] sm:text-[4.6rem]' : 'text-4xl'
           }`}
-          style={{ fontFamily: 'Nunito, ui-rounded, system-ui, sans-serif', textShadow: '0 0 28px rgba(139,92,246,.45)' }}
+          style={{ fontFamily: 'Nunito, ui-rounded, system-ui, sans-serif', lineHeight: 1.3 }}
           aria-label="SwaraVeda"
         >
-          <span className="inline-flex min-w-[2.9em] justify-end" aria-hidden="true">
-            <span key={i} lang={swara.lang} className="sv-word" style={{ fontFamily: `'${swara.font}', Nunito, sans-serif` }}>
+          <span
+            className="sv-slot relative inline-grid items-baseline justify-items-end"
+            style={{ width: width ? `${width}px` : '2.9em' }}
+            aria-hidden="true"
+          >
+            <span
+              key={`flash-${i}`}
+              className="sv-flash pointer-events-none absolute left-1/2 top-1/2 h-[1.8em] w-[1.8em] -translate-x-1/2 -translate-y-1/2 rounded-full"
+              style={{ background: `radial-gradient(circle, ${swara.color}66 0%, transparent 65%)` }}
+            />
+            {prev !== null && (
+              <span
+                key={`out-${prev}-${i}`}
+                className="sv-out whitespace-nowrap"
+                style={{ gridArea: '1 / 1', fontFamily: `'${SWARA[prev].font}', Nunito, sans-serif`, color: SWARA[prev].color }}
+                onAnimationEnd={() => setPrev(null)}
+              >
+                {SWARA[prev].text}
+              </span>
+            )}
+            <span
+              key={`in-${i}`}
+              lang={swara.lang}
+              className="sv-in whitespace-nowrap"
+              style={{
+                gridArea: '1 / 1',
+                fontFamily: `'${swara.font}', Nunito, sans-serif`,
+                color: swara.color,
+                textShadow: `0 0 26px ${swara.color}66`,
+              }}
+            >
               {swara.text}
             </span>
           </span>
-          <span aria-hidden="true">Veda</span>
+          <span aria-hidden="true" style={{ textShadow: '0 0 30px rgba(255,255,255,.18)' }}>Veda</span>
         </h1>
+
+        {/* Hidden copies of every script, only to measure their widths. */}
+        <span
+          ref={measure}
+          aria-hidden="true"
+          className={`pointer-events-none invisible absolute left-0 top-0 flex font-extrabold tracking-tight ${
+            big ? 'text-[3.4rem] sm:text-[4.6rem]' : 'text-4xl'
+          }`}
+        >
+          {SWARA.map((s) => (
+            <span key={s.lang} className="whitespace-nowrap" style={{ fontFamily: `'${s.font}', Nunito, sans-serif` }}>{s.text}</span>
+          ))}
+        </span>
       </div>
 
-      <p className="mt-3 text-center text-xs font-medium uppercase tracking-[0.25em] text-violet-300/70" aria-live="off">
-        {swara.name}
-      </p>
+      <div className="mt-3 flex flex-col items-center gap-2.5" aria-hidden="true">
+        <p key={swara.lang} className="sv-in text-xs font-bold uppercase tracking-[0.3em]" style={{ color: swara.color }}>
+          {swara.name}
+        </p>
+        <div className="flex gap-1.5">
+          {SWARA.map((s, n) => (
+            <span
+              key={s.lang}
+              className="h-1 rounded-full transition-all duration-700"
+              style={{ width: n === i ? 22 : 6, background: n === i ? swara.color : 'rgba(255,255,255,.18)' }}
+            />
+          ))}
+        </div>
+      </div>
       {tagline && (
         <p
           className={`mt-5 text-center text-white/85 ${big ? 'text-xl sm:text-2xl' : 'text-base'}`}
           style={{ fontFamily: 'Nunito, system-ui, sans-serif' }}
         >
-          <span className="font-bold bg-gradient-to-r from-fuchsia-400 to-cyan-300 bg-clip-text text-transparent">Vani:</span>{' '}
+          <span className="font-extrabold transition-colors duration-700" style={{ color: swara.color }}>Vani:</span>{' '}
           Preserving Voices, Empowering Generations
         </p>
       )}
