@@ -231,6 +231,27 @@ def test_translate_text_parses_json(monkeypatch):
     }
 
 
+
+def test_translation_moves_off_a_retired_model(monkeypatch):
+    monkeypatch.setattr(nlp, "_chat_model", None)
+    used = []
+
+    def fake_post(url, **kw):
+        used.append(kw["json"]["model"])
+        if kw["json"]["model"] == settings.GROQ_LLM_MODEL:
+            return FakeResponse({"error": {"message": f"The model `{settings.GROQ_LLM_MODEL}` does not exist or you do not have access to it."}}, 404)
+        return FakeResponse({"choices": [{"message": {"content": '{"translation_en": "Hello"}'}}]})
+
+    monkeypatch.setattr(nlp.httpx, "post", fake_post)
+    monkeypatch.setattr(nlp.httpx, "get", lambda url, **kw: FakeResponse({"data": [
+        {"id": "whisper-large-v3"}, {"id": "meta-llama/llama-guard-4-12b"}, {"id": "openai/gpt-oss-120b"},
+    ]}))
+    assert nlp.translate_text("namaskara", "Tulu")["translation_en"] == "Hello"
+    assert used == [settings.GROQ_LLM_MODEL, "openai/gpt-oss-120b"]
+    # The next request goes straight to the model that works.
+    nlp.translate_text("namaskara", "Tulu")
+    assert used[-1] == "openai/gpt-oss-120b"
+
 def test_download_identifies_itself(monkeypatch, tmp_path):
     # Wikimedia and other archives refuse downloads that carry no User-Agent.
     seen = {}

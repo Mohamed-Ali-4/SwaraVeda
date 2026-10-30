@@ -122,25 +122,59 @@ script (ISO 15919 style, no diacritics needed). The text may be a dialect of
 likely meaning. Reply with JSON only: {{"translation_en": "...", "transliteration": "..."}}"""
 
 
+# Groq retires chat models from time to time. When the configured one is gone,
+# translation switches to the best chat model the key can still use.
+_PREFERRED_CHAT = ("llama-3.3-70b", "llama-4-maverick", "gpt-oss-120b", "llama-4-scout", "qwen", "kimi", "gpt-oss", "llama")
+_NOT_CHAT = ("whisper", "guard", "tts", "playai", "orpheus", "embed", "compound", "distil")
+_chat_model: str | None = None
+
+
+def _model_gone(resp: httpx.Response) -> bool:
+    if resp.status_code not in (400, 404):
+        return False
+    body = resp.text.lower()
+    return "model" in body and any(w in body for w in ("does not exist", "decommissioned", "not found", "no access"))
+
+
+def _pick_chat_model() -> str | None:
+    resp = httpx.get(f"{settings.GROQ_BASE_URL.rstrip('/')}/models", headers=_groq_headers(), timeout=30)
+    if not resp.is_success:
+        return None
+    ids = [m.get("id", "") for m in resp.json().get("data", []) if m.get("active", True)]
+    ids = [i for i in ids if i and not any(w in i.lower() for w in _NOT_CHAT)]
+    for want in _PREFERRED_CHAT:
+        for i in ids:
+            if want in i.lower():
+                return i
+    return ids[0] if ids else None
+
+
+def _chat(payload: dict) -> httpx.Response:
+    global _chat_model
+    url = f"{settings.GROQ_BASE_URL.rstrip('/')}/chat/completions"
+    resp = httpx.post(url, headers=_groq_headers(), json={**payload, "model": _chat_model or settings.GROQ_LLM_MODEL}, timeout=60)
+    if _model_gone(resp):
+        replacement = _pick_chat_model()
+        if replacement and replacement != (_chat_model or settings.GROQ_LLM_MODEL):
+            logger.warning("Chat model %s is unavailable; using %s", _chat_model or settings.GROQ_LLM_MODEL, replacement)
+            _chat_model = replacement
+            resp = httpx.post(url, headers=_groq_headers(), json={**payload, "model": replacement}, timeout=60)
+    return resp
+
+
 def translate_text(text: str, dialect: str | None = None, script: str | None = None) -> dict:
     system = TRANSLATE_PROMPT.format(
         dialect=dialect or "an Indian language",
         script=f" written in {script} script" if script else "",
     )
-    resp = httpx.post(
-        f"{settings.GROQ_BASE_URL.rstrip('/')}/chat/completions",
-        headers=_groq_headers(),
-        json={
-            "model": settings.GROQ_LLM_MODEL,
-            "messages": [
-                {"role": "system", "content": system},
-                {"role": "user", "content": text},
-            ],
-            "response_format": {"type": "json_object"},
-            "temperature": 0.2,
-        },
-        timeout=60,
-    )
+    resp = _chat({
+        "messages": [
+            {"role": "system", "content": system},
+            {"role": "user", "content": text},
+        ],
+        "response_format": {"type": "json_object"},
+        "temperature": 0.2,
+    })
     _raise_for(resp, "Translation service")
     content = resp.json()["choices"][0]["message"]["content"]
     try:
