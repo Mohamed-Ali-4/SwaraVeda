@@ -75,7 +75,9 @@ const steps = [
 
 function hours(seconds: number) {
   const h = seconds / 3600;
-  return h >= 10 ? Math.round(h).toString() : h >= 1 ? h.toFixed(1) : `${Math.round(seconds / 60)} min`;
+  if (h >= 10) return Math.round(h).toString();
+  if (h >= 1) return h.toFixed(1);
+  return seconds >= 60 ? `${Math.round(seconds / 60)} min` : `${Math.round(seconds)} sec`;
 }
 
 /** A row of tape spines from the dialect shelf; each one rises when pointed at. */
@@ -157,7 +159,7 @@ export default function Dashboard() {
         {hasData ? (
           <dl className="grid grid-cols-2 gap-px overflow-hidden border border-ink/85 bg-ink/85 sm:grid-cols-4">
             {[
-              { label: 'hours of speech', value: hours(stats.total_seconds) },
+              { label: stats.total_seconds >= 3600 ? 'hours of speech' : 'of speech recorded', value: hours(stats.total_seconds) },
               { label: 'recordings', value: stats.recordings },
               { label: 'passages verified', value: stats.verified_segments },
               { label: 'dialects', value: stats.dialects },

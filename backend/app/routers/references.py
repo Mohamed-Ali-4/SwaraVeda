@@ -10,6 +10,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlmodel import Session, select
 
 from app.auth import require_verifier
+from app.config import USER_AGENT
 from app.db import get_session
 from app.models import Contributor, Dialect, Recording
 
@@ -17,7 +18,6 @@ router = APIRouter(prefix="/references", tags=["references"])
 
 COMMONS_API = "https://commons.wikimedia.org/w/api.php"
 # Wikimedia asks every client to identify itself.
-USER_AGENT = "SwaraVeda/1.0 (community archive of endangered Indian dialects; https://swara-veda.vercel.app)"
 
 
 def open_licence(name: str) -> bool:

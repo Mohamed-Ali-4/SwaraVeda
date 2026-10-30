@@ -6,7 +6,7 @@ from sqlmodel import Session
 
 from app import audio, nlp, pipeline
 from app.config import settings
-from app.models import Segment
+from app.models import Recording, Segment
 
 
 @pytest.fixture
@@ -229,3 +229,30 @@ def test_translate_text_parses_json(monkeypatch):
     assert nlp.translate_text("namaskara", "Tulu") == {
         "translation_en": "Hello", "transliteration": None,
     }
+
+
+def test_download_identifies_itself(monkeypatch, tmp_path):
+    # Wikimedia and other archives refuse downloads that carry no User-Agent.
+    seen = {}
+
+    class FakeStream:
+        status_code = 200
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *exc):
+            return False
+
+        def iter_bytes(self):
+            yield b"audio"
+
+    def fake_stream(method, url, **kw):
+        seen.update(kw.get("headers") or {})
+        return FakeStream()
+
+    monkeypatch.setattr(pipeline.httpx, "stream", fake_stream)
+    rec = Recording(title="Ref", audio_url="https://upload.wikimedia.org/a/b/Ref.ogg")
+    path = pipeline._download(rec, tmp_path)
+    assert path.read_bytes() == b"audio"
+    assert seen.get("User-Agent", "").startswith("SwaraVeda/")

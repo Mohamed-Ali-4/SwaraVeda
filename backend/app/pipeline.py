@@ -11,7 +11,7 @@ from sqlalchemy import text
 from sqlmodel import Session, select
 
 from app import audio, nlp
-from app.config import settings
+from app.config import USER_AGENT, settings
 from app.db import new_session
 from app.models import Dialect, Job, Recording, Segment
 from app.storage import public_url
@@ -36,7 +36,7 @@ def _download(rec: Recording, workdir: Path) -> Path:
     dest = workdir / name
     limit = settings.MAX_DOWNLOAD_MB * 1024 * 1024
     size = 0
-    with httpx.stream("GET", url, follow_redirects=True, timeout=120) as resp, dest.open("wb") as f:
+    with httpx.stream("GET", url, headers={"User-Agent": USER_AGENT}, follow_redirects=True, timeout=120) as resp, dest.open("wb") as f:
         if resp.status_code != 200:
             raise nlp.NLPError(f"Couldn't download the audio (HTTP {resp.status_code})")
         for chunk in resp.iter_bytes():
