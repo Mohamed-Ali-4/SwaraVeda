@@ -45,3 +45,6 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+
+# Sent with every request the API makes to other sites; Wikimedia refuses requests without one.
+USER_AGENT = "SwaraVeda/1.0 (community archive of endangered Indian dialects; https://swara-veda.vercel.app)"
