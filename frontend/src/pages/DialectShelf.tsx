@@ -1,4 +1,4 @@
-import { memo, useEffect, useMemo, useRef, useState } from 'react';
+import { memo, useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import api from '../lib/api';
 import { useAuth } from '../lib/auth';
@@ -24,6 +24,7 @@ const INK_BLOBS = [
   { cx: 230, cy: 470, delay: 180 },
 ];
 
+const zoneLabel = (z: ShelfDialect['zone']) => ZONES.find((x) => x.id === z)?.label ?? 'India';
 const smooth = (x: number) => x * x * (3 - 2 * x);
 const mod = (a: number, n: number) => ((a % n) + n) % n;
 // How far a tape at relative index r is pushed aside by the open cover (0 at centre, ±0.5 past one step).
@@ -103,7 +104,8 @@ function Shelf({ list }: { list: ShelfDialect[] }) {
     audio.current = a;
     a.play().then(() => setPlaying(r.id), () => setPlaying(null));
   };
-  const engine = useRef<{ open: () => void; close: () => void } | null>(null);
+  const engine = useRef<{ open: () => void; close: () => void; show: (idx: number) => void } | null>(null);
+  const [finding, setFinding] = useState(false);
 
   const N = list.length;
   const copies = Math.max(1, Math.ceil(36 / N));
@@ -295,7 +297,19 @@ function Shelf({ list }: { list: ShelfDialect[] }) {
         play.focus({ preventScroll: true });
       };
     }
-    engine.current = { open: openDetail, close: closeDetail };
+    // Spin the shelf to a dialect, then open it once its tape has turned to face us.
+    let showRaf = 0;
+    const show = (idx: number) => {
+      if (isOpen) return;
+      jumpTo(idx);
+      cancelAnimationFrame(showRaf);
+      const wait = () => {
+        if (Math.abs(T - s) < 0.02 || reduced) openDetail();
+        else showRaf = requestAnimationFrame(wait);
+      };
+      showRaf = requestAnimationFrame(wait);
+    };
+    engine.current = { open: openDetail, close: closeDetail, show };
 
     function frame(now: number) {
       const dt = Math.min(0.05, (now - lastT) / 1000);
@@ -451,7 +465,7 @@ function Shelf({ list }: { list: ShelfDialect[] }) {
       cursor.style.visibility = 'hidden';
     };
     const onWheel = (e: WheelEvent) => {
-      if (isOpen) return;
+      if (isOpen || (e.target as Element)?.closest?.('.vs-find')) return;
       e.preventDefault();
       const delta = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
       T += (delta / (ws + gap)) * 0.5;
@@ -461,6 +475,13 @@ function Shelf({ list }: { list: ShelfDialect[] }) {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && isOpen) closeDetail();
       if (isOpen) return;
+      // The search box handles its own keys.
+      if ((e.target as Element)?.closest?.('.vs-find')) return;
+      if (e.key === '/' || ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k')) {
+        e.preventDefault();
+        setFinding(true);
+        return;
+      }
       if (e.key === 'ArrowLeft') go(Math.round(T) - 1);
       else if (e.key === 'ArrowRight') go(Math.round(T) + 1);
       else if (e.key === 'Enter' && (document.activeElement === document.body || document.activeElement === el)) openDetail();
@@ -497,6 +518,7 @@ function Shelf({ list }: { list: ShelfDialect[] }) {
     return () => {
       cancelAnimationFrame(raf);
       cancelAnimationFrame(inkRaf);
+      cancelAnimationFrame(showRaf);
       clearTimeout(wheelTimer);
       enters.forEach((off) => off());
       shelf.removeEventListener('click', onTapeClick);
@@ -516,7 +538,6 @@ function Shelf({ list }: { list: ShelfDialect[] }) {
     };
   }, [list, N, copies, user?.native_dialect]);
 
-  const zoneLabel = (z: ShelfDialect['zone']) => ZONES.find((x) => x.id === z)?.label ?? 'India';
   const recordings = count === null ? '…' : count < 0 ? '—' : String(count);
 
   return (
@@ -527,6 +548,10 @@ function Shelf({ list }: { list: ShelfDialect[] }) {
         <Link to="/" className="vs-logo" aria-label="SwaraVeda home"><Logo /></Link>
         <div className="vs-top-r">
           <span className="lbl vs-count">{N} dialects · {zones.length} regions</span>
+          <button type="button" className="lbl box vs-find-btn" onClick={() => setFinding(true)} aria-haspopup="dialog" aria-expanded={finding}>
+            <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.4" aria-hidden="true"><circle cx="5" cy="5" r="3.8" /><path d="M8 8 L11 11" /></svg>
+            <span className="vs-find-word">Search{'\u00a0/\u00a0'}<span className="hi" lang="hi">खोजें</span></span>
+          </button>
           <Link to="/dialects/list" className="lbl box">List{'\u00a0/\u00a0'}<span className="hi" lang="hi">सूची</span></Link>
         </div>
       </header>
@@ -571,6 +596,14 @@ function Shelf({ list }: { list: ShelfDialect[] }) {
           <span className="vs-touch">Swipe to browse · tap to open</span>
         </span>
       </footer>
+
+      {finding && (
+        <FindDialect
+          list={list}
+          onClose={() => setFinding(false)}
+          onPick={(idx) => { setFinding(false); engine.current?.show(idx); }}
+        />
+      )}
 
       <div className="vs-grain" aria-hidden="true" />
 
@@ -675,6 +708,104 @@ function Shelf({ list }: { list: ShelfDialect[] }) {
         <span className="vs-ring" />
         <span className="vs-dot" />
         <span className="vs-clab">OPEN<span className="hi" lang="hi">खोलें</span></span>
+      </div>
+    </div>
+  );
+}
+
+/** Lower-case, without accents, so "Kodava" also finds "Koḍava". */
+const fold = (t: string | null | undefined) => (t ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+
+/** Finds dialects by name, native name, region, script or ISO code, best matches first. */
+function rank(list: ShelfDialect[], query: string) {
+  const q = fold(query.trim());
+  if (!q) return [];
+  const hits: { idx: number; score: number }[] = [];
+  list.forEach((d, idx) => {
+    const name = fold(d.name);
+    const native = d.native.toLowerCase();
+    let score = -1;
+    if (name === q || native === q || fold(d.iso_code) === q) score = 0;
+    else if (name.startsWith(q) || native.startsWith(q)) score = 1;
+    else if (name.split(/[\s-]+/).some((w) => w.startsWith(q))) score = 2;
+    else if (name.includes(q) || native.includes(q)) score = 3;
+    else if ([d.region, d.place, d.script, zoneLabel(d.zone)].some((v) => fold(v).includes(q))) score = 4;
+    if (score >= 0) hits.push({ idx, score });
+  });
+  return hits.sort((a, b) => a.score - b.score || list[a.idx].name.localeCompare(list[b.idx].name));
+}
+
+function FindDialect({ list, onClose, onPick }: {
+  list: ShelfDialect[];
+  onClose: () => void;
+  onPick: (idx: number) => void;
+}) {
+  const [query, setQuery] = useState('');
+  const [sel, setSel] = useState(0);
+  const input = useRef<HTMLInputElement>(null);
+  const hits = useMemo(() => rank(list, query), [list, query]);
+  const shown = hits.slice(0, 8);
+  const pick = Math.min(sel, Math.max(0, shown.length - 1));
+
+  useEffect(() => { input.current?.focus(); }, []);
+
+  const onKey = (e: ReactKeyboardEvent) => {
+    if (e.key === 'Escape') { e.preventDefault(); onClose(); }
+    else if (e.key === 'ArrowDown') { e.preventDefault(); setSel((n) => Math.min(n + 1, shown.length - 1)); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); setSel((n) => Math.max(n - 1, 0)); }
+    else if (e.key === 'Enter' && shown[pick]) { e.preventDefault(); onPick(shown[pick].idx); }
+  };
+
+  return (
+    <div className="vs-find-veil" onPointerDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="vs-find" role="dialog" aria-modal="true" aria-label="Search dialects">
+        <div className="vs-find-field">
+          <svg width="16" height="16" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.1" aria-hidden="true"><circle cx="5" cy="5" r="3.8" /><path d="M8 8 L11 11" /></svg>
+          <input
+            ref={input}
+            type="search"
+            value={query}
+            onChange={(e) => { setQuery(e.target.value); setSel(0); }}
+            onKeyDown={onKey}
+            placeholder="Find a dialect: name, region, script…"
+            aria-label="Find a dialect"
+            aria-controls="vs-find-list"
+            aria-activedescendant={shown[pick] ? `vs-find-${shown[pick].idx}` : undefined}
+            autoComplete="off"
+            spellCheck={false}
+          />
+          <button type="button" className="lbl box" onClick={onClose}>Esc</button>
+        </div>
+        {query.trim() ? (
+          shown.length ? (
+            <ul id="vs-find-list" role="listbox" className="vs-find-list">
+              {shown.map(({ idx }, n) => {
+                const d = list[idx];
+                return (
+                  <li key={d.id} id={`vs-find-${idx}`} role="option" aria-selected={n === pick}>
+                    <button
+                      type="button"
+                      className={`vs-find-row${n === pick ? ' on' : ''}`}
+                      onPointerEnter={() => setSel(n)}
+                      onClick={() => onPick(idx)}
+                    >
+                      <span className="vs-find-name">
+                        {d.name}
+                        {d.native !== d.name && <span className="vs-find-nat" style={{ fontFamily: nativeStyle(d) }}>{d.native}</span>}
+                      </span>
+                      <span className="lbl vs-find-meta">{[d.place || d.region, d.script].filter(Boolean).join(' · ') || zoneLabel(d.zone)}</span>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          ) : (
+            <p className="vs-find-empty">No dialect matches “{query.trim()}”. Try its region or script, or add it from the list view.</p>
+          )
+        ) : (
+          <p className="lbl vs-find-hint">{list.length} dialects · type to search · ↑ ↓ to choose · Enter to open</p>
+        )}
+        {hits.length > shown.length && <p className="lbl vs-find-hint">{hits.length - shown.length} more; keep typing to narrow down</p>}
       </div>
     </div>
   );

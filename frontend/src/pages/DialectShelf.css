@@ -208,3 +208,53 @@
 .vs-elsewhere { margin: 4px 0 0; font: 400 14px/1.6 var(--sans); color: var(--muted); }
 .vs-elsewhere a { color: var(--cobalt); text-decoration: none; border-bottom: 1px solid rgba(31, 63, 176, .35); }
 .vs-elsewhere a:hover { border-bottom-color: var(--cobalt); }
+
+/* Finding a dialect by name */
+.vs-find-btn { gap: 6px; }
+.vs-find-veil {
+  position: fixed; inset: 0; z-index: 60;
+  background: rgba(237, 235, 230, .72); backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px);
+  display: flex; justify-content: center; align-items: flex-start;
+  padding: calc(96px + env(safe-area-inset-top, 0px)) 16px 16px;
+  animation: vs-find-fade .25s var(--ease) both;
+}
+.vs-find {
+  width: min(560px, 100%);
+  background: var(--sheet); border: 1px solid var(--ink);
+  box-shadow: 8px 8px 0 -1px var(--paper), 8px 8px 0 0 var(--ink), 0 30px 60px -30px rgba(20, 20, 20, .4);
+  animation: vs-find-in .35s var(--ease) both;
+  user-select: text; -webkit-user-select: text;
+}
+.vs-find-field { display: flex; align-items: center; gap: 12px; padding: 0 14px; border-bottom: 1px solid var(--ink); color: var(--muted); }
+.vs-find-field input {
+  flex: 1; min-width: 0; height: 58px; border: 0; outline: 0; background: none;
+  font: 400 22px/1.2 var(--serif); color: var(--ink);
+}
+.vs-find-field input::placeholder { color: #A39F96; }
+.vs .vs-find-field input:focus-visible { outline: none; }
+.vs-find-field:focus-within { color: var(--cobalt); }
+.vs-find-field input::-webkit-search-cancel-button { display: none; }
+.vs-find-list { list-style: none; margin: 0; padding: 6px 0; }
+.vs-find-row {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 16px; width: 100%;
+  padding: 10px 16px; border: 0; background: none; color: var(--ink); text-align: left;
+  border-left: 3px solid transparent; transition: background-color .2s var(--ease), border-color .2s var(--ease);
+}
+.vs-find-row.on { background: rgba(31, 63, 176, .07); border-left-color: var(--cobalt); }
+.vs-find-name { display: inline-flex; align-items: baseline; gap: 10px; min-width: 0; font: 400 19px/1.25 var(--serif); }
+.vs-find-row.on .vs-find-name { color: var(--cobalt); }
+.vs-find-nat { font-size: 14px; color: var(--muted); white-space: nowrap; }
+.vs-find-meta { color: var(--muted); text-align: right; flex-shrink: 0; max-width: 46%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vs-find-hint { margin: 0; padding: 12px 16px; color: var(--muted); }
+.vs-find-list + .vs-find-hint { padding-top: 0; }
+.vs-find-empty { margin: 0; padding: 18px 16px; font: italic 400 16px/1.5 var(--serif); color: var(--muted); }
+@keyframes vs-find-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes vs-find-in { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .vs-find-veil, .vs-find { animation: none; } }
+@media (max-width: 767px) {
+  .vs-find-veil { padding-top: calc(72px + env(safe-area-inset-top, 0px)); }
+  .vs-find-word { display: none; }
+  .vs-find-btn { width: 30px; justify-content: center; padding: 0 !important; }
+  .vs-find-field input { font-size: 19px; height: 52px; }
+  .vs-find-meta { display: none; }
+}
