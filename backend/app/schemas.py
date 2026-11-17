@@ -307,6 +307,34 @@ class JobOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class DialectEffort(BaseModel):
+    """How much native speakers corrected Vani's drafts for one dialect."""
+    dialect_id: UUID
+    name: str
+    asr_language: Optional[str] = None
+    passages: int
+    verified: int
+    cer: Optional[float] = None
+    wer: Optional[float] = None
+
+
+class ProxyEvalIn(BaseModel):
+    # Whisper language codes to compare; "auto" is the no-hint baseline.
+    candidates: List[str] = Field(min_length=1, max_length=5)
+    sample: int = Field(default=10, ge=1, le=30)
+
+
+class ProxyEvalOut(BaseModel):
+    id: UUID
+    dialect_id: Optional[UUID] = None
+    status: str
+    progress: int
+    error: Optional[str] = None
+    result: Optional[dict] = None
+    created_at: datetime
+    updated_at: datetime
+
+
 class NLPStatus(BaseModel):
     transcription: bool
     translation: bool

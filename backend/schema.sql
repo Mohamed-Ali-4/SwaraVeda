@@ -79,10 +79,12 @@ create table if not exists recording_tags (
 create table if not exists jobs (
   id uuid primary key default gen_random_uuid(),
   recording_id uuid references recordings(id) on delete cascade,
+  dialect_id uuid references dialects(id) on delete cascade,
   kind text not null default 'transcribe',
   status text not null default 'queued',
   progress int default 0,
   error text,
+  result text,
   created_at timestamptz default now(),
   updated_at timestamptz default now()
 );
