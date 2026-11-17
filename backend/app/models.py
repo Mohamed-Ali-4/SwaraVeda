@@ -90,9 +90,13 @@ class Job(SQLModel, table=True):
     __tablename__ = "jobs"
     id: UUID = Field(default_factory=uuid4, primary_key=True)
     recording_id: Optional[UUID] = Field(default=None, foreign_key="recordings.id")
+    # Set for dialect-level jobs (kind "proxy_eval"), which have no recording.
+    dialect_id: Optional[UUID] = Field(default=None, foreign_key="dialects.id")
     kind: str = "transcribe"
     status: str = "queued"
     progress: int = 0
     error: Optional[str] = None
+    # JSON outcome of a dialect-level job, e.g. the proxy-language comparison.
+    result: Optional[str] = None
     created_at: datetime = Field(default_factory=_utcnow)
     updated_at: datetime = Field(default_factory=_utcnow)

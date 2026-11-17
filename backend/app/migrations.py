@@ -42,6 +42,7 @@ COLUMNS = {
         "recording_id uuid", "kind text not null default 'transcribe'",
         "status text not null default 'queued'", "progress int default 0", "error text",
         "created_at timestamptz default now()", "updated_at timestamptz default now()",
+        "dialect_id uuid", "result text",
     ],
 }
 

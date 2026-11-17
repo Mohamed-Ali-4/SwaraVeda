@@ -1,14 +1,14 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { genres } from '../lib/types';
 import { capitalize } from '../lib/format';
-import { HiOutlineDownload, HiOutlineUserGroup, HiOutlineDatabase, HiOutlineLink } from 'react-icons/hi';
+import { HiOutlineDownload, HiOutlineUserGroup, HiOutlineDatabase, HiOutlineLink, HiOutlineScale } from 'react-icons/hi';
 import api, { errorMessage } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { useDialects } from '../lib/dialects';
 import { date, initials } from '../lib/format';
 import { input } from '../lib/styles';
 import { useToast } from '../lib/toast';
-import { Button, Card, EmptyState, Field, PageHeader } from '../components/ui';
+import { Alert, Button, Card, EmptyState, Field, PageHeader } from '../components/ui';
 
 interface AdminUser {
   id: string;
@@ -88,6 +88,186 @@ function DatasetExport() {
       <Button className="mt-5" onClick={download} loading={downloading} icon={<HiOutlineDownload className="w-5 h-5" />}>
         {downloading ? 'Preparing…' : 'Download dataset'}
       </Button>
+    </Card>
+  );
+}
+
+interface Effort {
+  dialect_id: string;
+  name: string;
+  asr_language?: string | null;
+  passages: number;
+  verified: number;
+  cer?: number | null;
+  wer?: number | null;
+}
+
+interface Candidate { language: string; name: string; cer?: number | null; wer?: number | null; passages: number }
+interface Comparison {
+  id: string;
+  status: string;
+  progress: number;
+  error?: string | null;
+  result?: { passages: number; best: string | null; candidates: Candidate[] } | null;
+}
+
+const PROXY_LANGS: Record<string, string> = {
+  kn: 'Kannada', ml: 'Malayalam', ta: 'Tamil', te: 'Telugu', hi: 'Hindi', mr: 'Marathi', bn: 'Bengali',
+  gu: 'Gujarati', pa: 'Punjabi', ur: 'Urdu', ne: 'Nepali', as: 'Assamese', si: 'Sinhala', sa: 'Sanskrit', en: 'English',
+};
+const langName = (code?: string | null) => (!code || code === 'auto' ? 'Detect automatically' : PROXY_LANGS[code] ?? code);
+const pct = (v?: number | null) => (v == null ? '—' : `${(v * 100).toFixed(1)}%`);
+
+/** Which language Vani should listen for, chosen by how much people had to correct it. */
+function ProxyLanguages() {
+  const toast = useToast();
+  const { reload } = useDialects();
+  const [rows, setRows] = useState<Effort[] | null>(null);
+  const [open, setOpen] = useState<Effort | null>(null);
+  const [candidates, setCandidates] = useState<string[]>([]);
+  const [comparison, setComparison] = useState<Comparison | null>(null);
+  const [starting, setStarting] = useState(false);
+
+  const loadEffort = () => api.get('/dialects/effort').then((r) => setRows(r.data)).catch(() => setRows([]));
+  useEffect(() => { loadEffort(); }, []);
+
+  // Follow a running comparison until it finishes.
+  const running = comparison && (comparison.status === 'queued' || comparison.status === 'running');
+  useEffect(() => {
+    if (!open || !running) return;
+    const t = window.setTimeout(() => {
+      api.get(`/dialects/${open.dialect_id}/proxy-eval`).then((r) => setComparison(r.data)).catch(() => {});
+    }, 2500);
+    return () => window.clearTimeout(t);
+  }, [open, running, comparison]);
+
+  const choose = (row: Effort) => {
+    setOpen(row);
+    setComparison(null);
+    const current = row.asr_language || 'kn';
+    setCandidates(Array.from(new Set([current, current === 'kn' ? 'ml' : 'kn', 'auto'])));
+    api.get(`/dialects/${row.dialect_id}/proxy-eval`).then((r) => setComparison(r.data)).catch(() => {});
+  };
+  const toggle = (code: string) => setCandidates((c) => (c.includes(code) ? c.filter((x) => x !== code) : c.length >= 5 ? c : [...c, code]));
+
+  const start = async () => {
+    if (!open) return;
+    setStarting(true);
+    try {
+      const r = await api.post(`/dialects/${open.dialect_id}/proxy-eval`, { candidates, sample: 10 });
+      setComparison(r.data);
+    } catch (err) {
+      toast.error(errorMessage(err, 'Could not start the comparison'));
+    } finally {
+      setStarting(false);
+    }
+  };
+
+  const apply = async (code: string | null) => {
+    if (!open) return;
+    try {
+      await api.patch(`/dialects/${open.dialect_id}`, { asr_language: code === 'auto' ? null : code });
+      toast.success(`Vani will now listen to ${open.name} as ${langName(code)}.`);
+      setOpen({ ...open, asr_language: code === 'auto' ? null : code });
+      loadEffort();
+      reload();
+    } catch (err) {
+      toast.error(errorMessage(err, 'Could not change the language'));
+    }
+  };
+
+  const result = comparison?.status === 'completed' ? comparison.result : null;
+
+  return (
+    <Card className="p-6 sm:p-8">
+      <div className="flex items-start gap-4">
+        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-lotus-50 text-lotus-600"><HiOutlineScale className="w-6 h-6" /></span>
+        <div>
+          <h2 className="text-xl font-semibold text-ink">Vani’s accuracy by dialect</h2>
+          <p className="mt-1 max-w-2xl text-[15px] text-muted">
+            Vani transcribes each dialect as a related language it knows. Every correction shows how far its draft was from
+            what was said, so the archive can measure which language works best, without any extra labelling.
+          </p>
+        </div>
+      </div>
+
+      {rows === null ? (
+        <p className="mt-6 text-sm text-muted">Measuring…</p>
+      ) : rows.length === 0 ? (
+        <p className="mt-6 text-[15px] text-muted">No corrected passages yet. Once native speakers correct Vani’s drafts, each dialect’s error rate appears here.</p>
+      ) : (
+        <div className="mt-6 overflow-x-auto">
+          <table className="w-full min-w-[560px] text-left text-[15px]">
+            <thead>
+              <tr className="border-b border-ink/80 text-xs uppercase tracking-wider text-muted">
+                <th className="py-2 pr-3 font-semibold">Dialect</th>
+                <th className="py-2 pr-3 font-semibold">Listened to as</th>
+                <th className="py-2 pr-3 font-semibold">Corrected</th>
+                <th className="py-2 pr-3 font-semibold" title="Character error rate">CER</th>
+                <th className="py-2 pr-3 font-semibold" title="Word error rate">WER</th>
+                <th />
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((r) => (
+                <tr key={r.dialect_id} className="border-b border-line">
+                  <td className="py-2.5 pr-3 font-medium text-ink">{r.name}</td>
+                  <td className="py-2.5 pr-3 text-ink-soft">{langName(r.asr_language)}</td>
+                  <td className="py-2.5 pr-3 text-ink-soft">{r.passages} <span className="text-muted">({r.verified} verified)</span></td>
+                  <td className="py-2.5 pr-3 tabular">{pct(r.cer)}</td>
+                  <td className="py-2.5 pr-3 tabular">{pct(r.wer)}</td>
+                  <td className="py-2.5 text-right">
+                    <Button size="sm" variant={open?.dialect_id === r.dialect_id ? 'primary' : 'secondary'} onClick={() => choose(r)}>Compare languages</Button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {open && (
+        <div className="mt-6 border border-line bg-sunken/40 p-5">
+          <h3 className="text-lg font-semibold text-ink">Which language should Vani listen for in {open.name}?</h3>
+          <p className="mt-1 text-sm text-muted">
+            Vani re-transcribes up to 10 corrected passages with each language and counts how much would need correcting.
+            “Detect automatically” is the no-hint baseline.
+          </p>
+          <div className="mt-4 flex flex-wrap gap-2">
+            {['auto', ...Object.keys(PROXY_LANGS)].map((code) => (
+              <button key={code} type="button" onClick={() => toggle(code)} aria-pressed={candidates.includes(code)}
+                className={`border px-3 py-1.5 text-sm transition-colors ${candidates.includes(code) ? 'border-saffron-600 bg-saffron-600 text-white' : 'border-line bg-surface text-ink-soft hover:border-ink/60'}`}>
+                {langName(code)}
+              </button>
+            ))}
+          </div>
+          <Button className="mt-4" onClick={start} loading={starting || !!running} disabled={candidates.length === 0}>
+            {running ? `Comparing… ${comparison?.progress ?? 0}%` : `Compare ${candidates.length} option${candidates.length === 1 ? '' : 's'}`}
+          </Button>
+          {comparison?.status === 'failed' && <div className="mt-4"><Alert>{comparison.error || 'The comparison failed.'}</Alert></div>}
+          {result && (
+            <div className="mt-5">
+              <p className="text-sm text-muted">Scored on {result.passages} corrected passage{result.passages === 1 ? '' : 's'}. Lower is better.</p>
+              <table className="mt-2 w-full max-w-lg text-left text-[15px]">
+                <tbody>
+                  {[...result.candidates].sort((a, b) => (a.cer ?? 9) - (b.cer ?? 9)).map((c) => (
+                    <tr key={c.language} className={`border-b border-line ${c.language === result.best ? 'font-semibold text-ink' : 'text-ink-soft'}`}>
+                      <td className="py-2 pr-3">{langName(c.language)}{c.language === result.best && ' · best'}</td>
+                      <td className="py-2 pr-3 tabular">CER {pct(c.cer)}</td>
+                      <td className="py-2 tabular">WER {pct(c.wer)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {result.best && (result.best === 'auto' ? !!open.asr_language : result.best !== open.asr_language) ? (
+                <Button className="mt-4" onClick={() => apply(result.best)}>Listen to {open.name} as {langName(result.best)}</Button>
+              ) : result.best ? (
+                <p className="mt-4 text-sm text-ink-soft">{open.name} already uses the best option.</p>
+              ) : null}
+            </div>
+          )}
+        </div>
+      )}
     </Card>
   );
 }
@@ -314,8 +494,9 @@ export default function Manage() {
   }
   return (
     <div className="mx-auto max-w-4xl space-y-6">
-      <PageHeader eyebrow="Manage" title="Archive tools" subtitle="Add reference recordings, export the dataset and decide who can approve transcripts." />
+      <PageHeader eyebrow="Manage" title="Archive tools" subtitle="Add reference recordings, tune how Vani listens to each dialect, export the dataset and decide who can approve transcripts." />
       <ReferenceRecording />
+      <ProxyLanguages />
       <DatasetExport />
       {user.role === 'admin' && <Users currentUserId={user.id} />}
     </div>
