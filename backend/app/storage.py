@@ -62,7 +62,9 @@ def public_url(path: str) -> str:
 def check() -> str:
     """'ok' when the bucket can be reached with the configured key, else why not."""
     try:
-        client().storage.get_bucket(settings.SUPABASE_BUCKET)
+        # Listing one file proves the key and the bucket work. (Reading the bucket's
+        # details breaks whenever Supabase adds a field the library doesn't know.)
+        client().storage.from_(settings.SUPABASE_BUCKET).list(options={"limit": 1})
         return "ok"
     except Exception as e:
         return str(_explain(e))

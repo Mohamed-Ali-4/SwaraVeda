@@ -28,14 +28,25 @@ def test_upload_url_explains_storage_failure_without_the_key(client, auth_header
 
 
 def test_storage_check_reports_ok_and_failure(monkeypatch):
+    listed = {}
+
+    class Bucket:
+        def __init__(self, name):
+            self.name = name
+
+        def list(self, path=None, options=None):
+            listed.update(bucket=self.name, options=options)
+            return []
+
     class Fine:
         class storage:
             @staticmethod
-            def get_bucket(name):
-                return {"name": name}
+            def from_(name):
+                return Bucket(name)
 
     monkeypatch.setattr(storage, "client", lambda: Fine())
     assert storage.check() == "ok"
+    assert listed == {"bucket": settings.SUPABASE_BUCKET, "options": {"limit": 1}}
     monkeypatch.setattr(storage, "client", lambda: Boom())
     msg = storage.check()
     assert "Invalid API key" in msg and KEY not in msg
