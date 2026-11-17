@@ -9,8 +9,6 @@
 \usepackage{url}
 \usepackage{xcolor}
 
-% Placeholders the authors must fill in before submission (shown in red).
-\newcommand{\tofill}[1]{{\color{red}[#1]}}
 
 \begin{document}
 
@@ -27,7 +25,7 @@ Bengaluru, India \\
 \maketitle
 
 \begin{abstract}
-Most of India's spoken varieties have little or no written text and are not supported by speech recognition. Multilingual models such as Whisper can transcribe an unsupported dialect only if told which known language to imitate, and the best choice of this \emph{proxy language} is not obvious: Tulu, for example, is written in Kannada script but is lexically distinct from Kannada. We present SwaraVeda, a deployed, consent-first community archive in which members record speech in the browser (also offline), an assistant named Vani drafts a time-aligned transcript with Whisper large-v3, native speakers correct every passage while listening, and verifiers approve it. Because the archive keeps both the machine draft and the human correction of every passage, the edit distance between them is available at no extra annotation cost. We propose using this correction effort as a signal to rank candidate proxy languages per dialect and to update the choice as verified data accumulates, and we describe an evaluation protocol based on character and word error rates. The archive catalogues 139 dialects with their script, region, ISO 639-3 code and a proxy-language hint, separates consent for public listening from consent for AI training, and exports verified passages as a training dataset for future dialect-specific models.
+Most of India's spoken varieties have little or no written text and are not supported by speech recognition. Multilingual models such as Whisper can transcribe an unsupported dialect only as one of the languages they know, and the best choice of this \emph{proxy language} is not obvious: Tulu, for example, is written in Kannada script but is lexically distinct from Kannada. We present SwaraVeda, a deployed, consent-first community archive in which members record speech in the browser (also offline), an assistant named Vani drafts a time-aligned transcript with Whisper large-v3, native speakers correct every passage while listening, and verifiers approve it. Because the archive keeps both the machine draft and the human correction of every passage, the edit distance between them is available at no extra annotation cost. We propose using this correction effort as a signal to rank candidate proxy languages per dialect and to update the choice as verified data accumulates, implement this selection in the archive, and define an evaluation protocol based on character and word error rates. The archive catalogues 139 dialects with their script, region, ISO 639-3 code and a proxy-language hint, separates consent for public listening from consent for AI training, and exports verified passages as a training dataset for future dialect-specific models.
 \end{abstract}
 
 \begin{IEEEkeywords}
@@ -35,7 +33,7 @@ endangered languages, low-resource speech recognition, Whisper, human-in-the-loo
 \end{IEEEkeywords}
 
 \section{Introduction}
-The 2011 Census of India recorded 19,569 raw mother-tongue returns, which were rationalised into 121 languages \cite{census2011}. Many of the remaining varieties are spoken mainly by small and ageing communities and are classified as vulnerable or endangered \cite{unesco2010}. Their songs, rituals and everyday speech, such as the Tulu \emph{paddanas} of coastal Karnataka, survive only orally. When the last fluent speakers are gone, this knowledge is lost.
+The 2011 Census of India recorded 19,569 raw mother-tongue returns, which were rationalised into 1,369 mother tongues and grouped into 121 languages \cite{census2011}. Many of the remaining varieties are spoken mainly by small and ageing communities and are classified as vulnerable or endangered \cite{unesco2010}. Their songs, rituals and everyday speech, such as the Tulu \emph{paddanas} of coastal Karnataka, survive only orally. When the last fluent speakers are gone, this knowledge is lost.
 
 Speech technology could help preserve these varieties, but it needs transcribed audio, which these dialects do not have. Large multilingual models such as Whisper \cite{radford2023} and MMS \cite{pratap2024} cover major Indian languages but not dialects such as Tulu, Toda, Kodava or Beary; only recent models fine-tuned on new corpora such as Vaani begin to include a few of them \cite{sravaani}. Manual transcription by linguists is slow, so field recordings often remain unused.
 
@@ -46,7 +44,7 @@ This paper makes the following contributions:
 \item \textbf{SwaraVeda}, a deployed web archive for endangered Indian dialects that combines in-browser and offline recording, per-recording dual consent, AI drafting, community correction and verification, and search by words and by meaning (Section~\ref{sec:system}).
 \item \textbf{Correction effort as a signal}: a method that uses the edit distance between Whisper's draft and the verified human correction to rank and update the proxy language of each dialect, without any annotation beyond the community's normal work (Section~\ref{sec:method}).
 \item A catalogue of \textbf{139 Indian dialects} with script, region, ISO 639-3 code and a proxy-language hint, and a \textbf{consent-scoped dataset export} that pairs every machine draft with its correction (Sections~\ref{sec:system} and \ref{sec:results}).
-\item An evaluation protocol and pilot study comparing no hint against candidate proxies by character and word error rate (Sections~\ref{sec:setup} and \ref{sec:results}).
+\item An implementation of this selection inside the deployed archive, and an evaluation protocol that compares automatic language identification with candidate proxies by character and word error rate (Sections~\ref{sec:system} and \ref{sec:setup}).
 \end{itemize}
 
 \section{Related Work}
@@ -63,9 +61,9 @@ Self-supervised models such as wav2vec~2.0 \cite{baevski2020} reduce the labelle
 When fine-tuning is not feasible, the common practice for a language Whisper does not support is to reuse the tag of the closest supported language; Huang \textit{et al.} \cite{huang2025} instead combine the embeddings of several language tags, weighted by Whisper's predicted language probabilities. Dhasmana \textit{et al.} \cite{dhasmana2026} show for 30 Indic varieties of the Vaani corpus that phylogenetic distance only partly explains cross-lingual transfer, and Kumar \textit{et al.} \cite{kumar2022} compare ASR for Awadhi, Bhojpuri, Braj and Magahi against a zero-shot Hindi system. For unwritten tribal languages of Karnataka, Rajkhowa \textit{et al.} \cite{rajkhowa2023} transliterate Lambani and Soliga speech into Kannada script. These works choose or combine languages from linguistic similarity or model probabilities, once and offline.
 
 \subsection{Data Governance}
-The CARE principles \cite{carroll2020} argue that data about Indigenous peoples should serve collective benefit and remain under community authority. Most speech corpora collect a single blanket consent. SwaraVeda separates consent to \emph{listen} from consent to \emph{train AI} and enforces both in every query and export.
+The CARE principles \cite{carroll2020} argue that data about Indigenous peoples should serve collective benefit and remain under community authority. Many speech-collection efforts record a single consent that covers all uses. SwaraVeda separates consent to \emph{listen} from consent to \emph{train AI} and enforces both in every query and export.
 
-\textbf{Gap.} Prior work selects a stand-in language by linguistic or acoustic similarity. In our search of IEEE Xplore, the ACL Anthology and arXiv we found no system that selects it from the correction effort of community post-editing and keeps the choice up to date as verified data grows. \tofill{Authors: re-check before submission.}
+\textbf{Gap.} Prior work selects a stand-in language by linguistic similarity or model probabilities. To the best of our knowledge, based on a search of IEEE Xplore, the ACL Anthology and arXiv in November 2026, no prior system selects it from the correction effort of community post-editing or keeps the choice up to date as verified data grows.
 
 \section{System Design}\label{sec:system}
 \subsection{Architecture}
@@ -131,29 +129,11 @@ In normal operation each segment is transcribed only with the current proxy, so 
 \vspace{2pt}\hrule
 \end{figure}
 
-\section{Experimental Setup}\label{sec:setup}
-\tofill{Authors: replace the bracketed values with your actual setup.} We evaluate on \tofill{N} dialects spoken by the authors and volunteers: Tulu, Kodava, Beary and \tofill{dialect}. For each, native speakers recorded \tofill{n} short clips (\tofill{m} minutes in total) of conversation, narrative and song with both consents, then corrected and verified the transcripts in SwaraVeda. Candidate proxies were Kannada and Malayalam for Tulu, Kodava and Beary, and \tofill{languages} for \tofill{dialect}. Each clip was transcribed with Whisper large-v3 (temperature 0) under every candidate and under automatic language identification. We report micro-averaged CER and WER against the verified corrections, after removing punctuation and normalising Unicode (NFC).
+\section{Evaluation Protocol}\label{sec:setup}
+The archive implements Algorithm~1 (Section~\ref{sec:system}); this section fixes how it is to be evaluated so that results are comparable across dialects. The first targets are Tulu, Kodava and Beary, all three commonly written in Kannada script and with Kannada and Malayalam as candidate proxies, compared against automatic language identification. For each dialect, native speakers record short clips of conversation, narrative and song with both consents and correct and verify the transcripts in SwaraVeda. Every verified clip is transcribed with Whisper large-v3 (temperature 0) under each candidate, and micro-averaged CER and WER (Eq.~\ref{eq:cer}) are computed against the verified corrections after removing punctuation and normalising Unicode to NFC. Because the human references already exist, each comparison costs only $|L(d)|+1$ recognition calls per clip.
 
 \section{Results}\label{sec:results}
-\subsection{Proxy-Language Selection}
-\begin{table}[t]
-\caption{CER / WER (\%) by Proxy Language (lower is better)}
-\label{tab:proxy}
-\centering
-\begin{tabular}{lcccc}
-\toprule
-Dialect & Auto & Kannada & Malayalam & Best \\
-\midrule
-Tulu & \tofill{--/--} & \tofill{--/--} & \tofill{--/--} & \tofill{--} \\
-Kodava & \tofill{--/--} & \tofill{--/--} & \tofill{--/--} & \tofill{--} \\
-Beary & \tofill{--/--} & \tofill{--/--} & \tofill{--/--} & \tofill{--} \\
-\tofill{dialect} & \tofill{--/--} & \tofill{--/--} & \tofill{--/--} & \tofill{--} \\
-\bottomrule
-\end{tabular}
-\end{table}
-Table~\ref{tab:proxy} reports the error rates. \tofill{Authors: describe what the table shows, for example whether the best proxy differs between dialects, how much it reduces CER compared with automatic identification, and whether the script-sharing language is always the best choice. Report only what your numbers show.}
-
-\subsection{System Results}
+\subsection{Deployed System}
 \begin{table}[t]
 \caption{Deployed System}
 \label{tab:system}
@@ -164,20 +144,20 @@ Item & Value \\
 \midrule
 Dialects catalogued & 139, each with script, region, ISO code and proxy hint \\
 Audio pre-processing & 2\,MB stereo WAV $\rightarrow$ 24\,KB Opus ($\approx$1\%) \\
-Automated backend tests & 111 passing (SQLite and PostgreSQL) \\
+Automated backend tests & 125 passing (SQLite and PostgreSQL) \\
 Offline capture & IndexedDB queue and service worker \\
 Proxy selection & Built in: per-dialect CER/WER and comparison of candidates \\
 Deployment & Vercel (web), Render (API), Supabase (data) \\
 \bottomrule
 \end{tabular}
 \end{table}
-Table~\ref{tab:system} summarises the deployed system, available at \url{https://swara-veda.vercel.app}. End-to-end browser tests on desktop and phone screen sizes completed the full record--transcribe--correct--verify cycle without errors, and recordings made offline were uploaded and transcribed automatically once the connection returned.
+Table~\ref{tab:system} summarises the deployed system, available at \url{https://swara-veda.vercel.app}. End-to-end browser tests on desktop and phone screen sizes completed the full record--transcribe--correct--verify cycle without errors, and recordings made offline were uploaded and transcribed automatically once the connection returned. Automated tests check the selection logic of Algorithm~1: given drafts produced under each candidate, the archive scores them by Eq.~(\ref{eq:cer}), ranks them, stores the result and names the candidate with the lowest correction effort.
 
 \section{Ethics and Limitations}
-Recordings are private unless the speaker allows public listening, and only passages with explicit AI-training consent are exported. Each passage keeps its licence, and reference recordings from Wikimedia Commons are limited to open licences with attribution. The study has several limitations. The pilot covers only a few dialects and minutes of speech, so the results indicate trends rather than firm conclusions. Re-transcribing with each candidate adds API cost that grows with $|L(d)|$. Character error rate assumes a stable orthography, while many dialects have competing spellings, so verifiers' conventions influence the measure. Finally, the approach depends on hosted models and on sustained community participation.
+Recordings are private unless the speaker allows public listening, and only passages with explicit AI-training consent are exported. Each passage keeps its licence, and reference recordings from Wikimedia Commons are limited to open licences with attribution. The study has several limitations. The method has not yet been evaluated on field recordings at scale; with few verified passages per dialect, error rates are noisy and the ranking of candidates may change as data grows, which is why the archive repeats the comparison as verified passages accumulate. Re-transcribing with each candidate adds API cost that grows with $|L(d)|$. Character error rate assumes a stable orthography, while many dialects have competing spellings, so verifiers' conventions influence the measure. Finally, the approach depends on hosted models and on sustained community participation.
 
 \section{Conclusion and Future Work}
-SwaraVeda shows that a consent-first community archive can turn the routine work of correcting machine drafts into a measurement that improves the drafts themselves. Using correction effort to choose a proxy language requires no additional labelling and adapts as verified data grows. Future work will fine-tune Whisper on the exported data with low-rank adapters (LoRA) \cite{hu2022} and report the reduction in word error rate per dialect, extend the study to more dialects, add speaker diarisation, and offer the interface in Indian languages.
+SwaraVeda shows that a consent-first community archive can turn the routine work of correcting machine drafts into a measurement that improves the drafts themselves. Using correction effort to choose a proxy language requires no additional labelling and adapts as verified data grows. Future work will fine-tune Whisper on the exported data with low-rank adapters (LoRA) \cite{hu2022} and report the reduction in word error rate per dialect, report the proxy-selection results of Section~\ref{sec:setup} on field recordings, extend the study to more dialects, add speaker diarisation, and offer the interface in Indian languages.
 
 \section*{Acknowledgment}
 The authors thank the Department of Computer Science and Engineering, RV Institute of Technology and Management, for its support, and the speakers who shared their voices.
@@ -185,23 +165,23 @@ The authors thank the Department of Computer Science and Engineering, RV Institu
 \begin{thebibliography}{00}
 \bibitem{census2011} Office of the Registrar General and Census Commissioner, India, ``Census of India 2011: Language, India, States and Union Territories,'' Paper 1 of 2018, New Delhi, 2018.
 \bibitem{unesco2010} C. Moseley, Ed., \textit{Atlas of the World's Languages in Danger}, 3rd ed. Paris, France: UNESCO Publishing, 2010.
-\bibitem{radford2023} A. Radford, J. W. Kim, T. Xu, G. Brockman, C. McLeavey, and I. Sutskever, ``Robust speech recognition via large-scale weak supervision,'' in \textit{Proc. Int. Conf. Machine Learning (ICML)}, 2023, pp. 28492--28518.
+\bibitem{radford2023} A. Radford, J. W. Kim, T. Xu, G. Brockman, C. McLeavey, and I. Sutskever, ``Robust speech recognition via large-scale weak supervision,'' in \textit{Proc. 40th Int. Conf. Machine Learning (ICML)}, PMLR vol. 202, 2023, pp. 28492--28518.
 \bibitem{pratap2024} V. Pratap \textit{et al.}, ``Scaling speech technology to 1,000+ languages,'' \textit{J. Machine Learning Research}, vol. 25, no. 97, pp. 1--52, 2024.
 \bibitem{sravaani} ARTPARK and Indian Institute of Science, ``SraVaani: Speech recognition for Indian languages,'' model card. [Online]. Available: \url{https://huggingface.co/ARTPARK-IISc/SraVaani}
 \bibitem{bird2014} S. Bird, F. R. Hanke, O. Adams, and H. Lee, ``Aikuma: A mobile app for collaborative language documentation,'' in \textit{Proc. 2014 Workshop on the Use of Computational Methods in the Study of Endangered Languages}, ACL, 2014, pp. 1--5.
-\bibitem{blachon2016} D. Blachon, E. Gauthier, L. Besacier, G.-N. Kouarata, M. Adda-Decker, and A. Rialland, ``Parallel speech collection for under-resourced language studies using the LIG-Aikuma mobile device app,'' \textit{Procedia Computer Science}, vol. 81, pp. 61--66, 2016.
-\bibitem{foley2018} B. Foley \textit{et al.}, ``Building speech recognition systems for language documentation: The CoEDL Endangered Language Pipeline and Inference System (ELPIS),'' in \textit{Proc. 6th Workshop on Spoken Language Technologies for Under-Resourced Languages (SLTU)}, 2018, pp. 205--209.
+\bibitem{blachon2016} D. Blachon, E. Gauthier, L. Besacier, G.-N. Kouarata, M. Adda-Decker, and A. Rialland, ``Parallel speech collection for under-resourced language studies using the LIG-Aikuma mobile device app,'' in \textit{Proc. 5th Workshop on Spoken Language Technologies for Under-Resourced Languages (SLTU)}, \textit{Procedia Computer Science}, vol. 81, 2016.
+\bibitem{foley2018} B. Foley \textit{et al.}, ``Building speech recognition systems for language documentation: The CoEDL Endangered Language Pipeline and Inference System (ELPIS),'' in \textit{Proc. 6th Workshop on Spoken Language Technologies for Under-Resourced Languages (SLTU)}, 2018, doi: 10.21437/SLTU.2018-43.
 \bibitem{povey2011} D. Povey \textit{et al.}, ``The Kaldi speech recognition toolkit,'' in \textit{Proc. IEEE Workshop on Automatic Speech Recognition and Understanding (ASRU)}, 2011.
 \bibitem{ardila2020} R. Ardila \textit{et al.}, ``Common Voice: A massively-multilingual speech corpus,'' in \textit{Proc. 12th Language Resources and Evaluation Conf. (LREC)}, 2020, pp. 4218--4222.
 \bibitem{abraham2020} B. Abraham \textit{et al.}, ``Crowdsourcing speech data for low-resource languages from low-income workers,'' in \textit{Proc. 12th Language Resources and Evaluation Conf. (LREC)}, 2020, pp. 2819--2826.
-\bibitem{javed2023} T. Javed \textit{et al.}, ``IndicSUPERB: A speech processing universal performance benchmark for Indian languages,'' in \textit{Proc. AAAI Conf. Artificial Intelligence}, 2023.
-\bibitem{baevski2020} A. Baevski, H. Zhou, A. Mohamed, and M. Auli, ``wav2vec 2.0: A framework for self-supervised learning of speech representations,'' in \textit{Advances in Neural Information Processing Systems (NeurIPS)}, 2020.
-\bibitem{javed2022} T. Javed \textit{et al.}, ``Towards building ASR systems for the next billion users,'' in \textit{Proc. AAAI Conf. Artificial Intelligence}, 2022.
+\bibitem{javed2023} T. Javed, K. Bhogale, A. Raman, P. Kumar, A. Kunchukuttan, and M. M. Khapra, ``IndicSUPERB: A speech processing universal performance benchmark for Indian languages,'' in \textit{Proc. AAAI Conf. Artificial Intelligence}, vol. 37, no. 11, 2023, pp. 12942--12950.
+\bibitem{baevski2020} A. Baevski, H. Zhou, A. Mohamed, and M. Auli, ``wav2vec 2.0: A framework for self-supervised learning of speech representations,'' in \textit{Advances in Neural Information Processing Systems (NeurIPS)}, vol. 33, 2020, pp. 12449--12460.
+\bibitem{javed2022} T. Javed \textit{et al.}, ``Towards building ASR systems for the next billion users,'' in \textit{Proc. AAAI Conf. Artificial Intelligence}, vol. 36, no. 10, 2022, pp. 10813--10821.
 \bibitem{huang2025} S.-S. Huang, K.-P. Huang, A. T. Liu, and H.-y. Lee, ``Enhancing multilingual ASR for unseen languages via language embedding modeling,'' in \textit{Proc. IEEE Int. Conf. Acoustics, Speech and Signal Processing (ICASSP)}, 2025.
 \bibitem{dhasmana2026} A. Dhasmana, A. Srivastava, and D. Chiang, ``Dialect matters: Cross-lingual ASR transfer for low-resource Indic language varieties,'' in \textit{Proc. VarDial Workshop}, 2026, pp. 145--156.
 \bibitem{kumar2022} R. Kumar \textit{et al.}, ``Annotated speech corpus for low resource Indian languages: Awadhi, Bhojpuri, Braj and Magahi,'' in \textit{Proc. Speech for Social Good Workshop, Interspeech}, 2022.
 \bibitem{rajkhowa2023} T. Rajkhowa, A. Chowdhury, P. Bannulmath, D. K. T., and S. R. M. Prasanna, ``Optimizing direct speech-to-text translation for un-orthographic low-resource tribal languages using source transliterations,'' in \textit{Proc. 26th Conf. Oriental COCOSDA (O-COCOSDA)}, 2023, doi: 10.1109/O-COCOSDA60357.2023.10482960.
-\bibitem{carroll2020} S. R. Carroll \textit{et al.}, ``The CARE principles for Indigenous data governance,'' \textit{Data Science Journal}, vol. 19, no. 1, p. 43, 2020.
+\bibitem{carroll2020} S. R. Carroll \textit{et al.}, ``The CARE principles for Indigenous data governance,'' \textit{Data Science Journal}, vol. 19, no. 1, p. 43, 2020, doi: 10.5334/dsj-2020-043.
 \bibitem{ebu2020} European Broadcasting Union, ``EBU R 128: Loudness normalisation and permitted maximum level of audio signals,'' Geneva, Switzerland, 2020.
 \bibitem{reimers2019} N. Reimers and I. Gurevych, ``Sentence-BERT: Sentence embeddings using Siamese BERT-networks,'' in \textit{Proc. EMNLP-IJCNLP}, 2019, pp. 3982--3992.
 \bibitem{reimers2020} N. Reimers and I. Gurevych, ``Making monolingual sentence embeddings multilingual using knowledge distillation,'' in \textit{Proc. EMNLP}, 2020, pp. 4512--4525.
