@@ -16,5 +16,5 @@ FLEURS (Conneau et al., SLT 2023; CC BY 4.0) supplies verified transcripts.
 `fleurs_odia_scores.json` is the scored result.
 
 ## Pilot data in the live archive (Table 1)
-`archive_pilot_snapshot.json` is the public recordings and segments of
+`archive_pilot_snapshot.json` summarises (counts and flags only, no audio, names or text) the public recordings of
 swaraveda-api.onrender.com on 25 Nov 2026 (11 recordings, 12 passages).

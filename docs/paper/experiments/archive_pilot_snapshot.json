@@ -1,361 +1,178 @@
 {
- "recs": [
+ "taken": "2026-11-25",
+ "source": "public API of the live archive",
+ "recordings": [
   {
-   "title": "Idk",
+   "dialect_id": "5a248958-11f2-4d68-920d-0a4f0f6f38e1",
+   "speaker": "speaker-1",
    "duration_seconds": "12.0",
-   "genre": "conversation",
-   "recorded_at": null,
-   "id": "be86752b-4aaa-4024-ba79-904b3efc63ae",
-   "dialect_id": "5a248958-11f2-4d68-920d-0a4f0f6f38e1",
-   "speaker_age_group": "young adult",
-   "consent_public": true,
-   "consent_ai_training": true,
-   "licence": "CC-BY-NC-4.0",
    "status": "transcribed",
-   "created_at": "2026-11-20T08:49:33.913419Z",
-   "speaker": "speaker-1"
+   "passages": [
+    {
+     "start_ms": 0,
+     "end_ms": 8039,
+     "corrected": false,
+     "changed": false,
+     "verified": false
+    },
+    {
+     "start_ms": 8039,
+     "end_ms": 11179,
+     "corrected": false,
+     "changed": false,
+     "verified": false
+    }
+   ]
   },
   {
-   "title": "anurag",
-   "duration_seconds": "4.0",
-   "genre": "conversation",
-   "recorded_at": null,
-   "id": "f5b3d130-40c3-4763-8e8f-53fd0c2bc6bf",
    "dialect_id": "63a4dd55-0bdf-4dba-87c0-437a894fa0de",
-   "speaker_age_group": "adult",
-   "consent_public": true,
-   "consent_ai_training": true,
-   "licence": "CC-BY-NC-4.0",
+   "speaker": "speaker-2",
+   "duration_seconds": "4.0",
    "status": "verified",
-   "created_at": "2026-10-31T13:24:55.096579Z",
-   "speaker": "speaker-2"
+   "passages": [
+    {
+     "start_ms": 0,
+     "end_ms": 4140,
+     "corrected": true,
+     "changed": false,
+     "verified": true
+    }
+   ]
   },
   {
-   "title": "test 1",
-   "duration_seconds": "10.0",
-   "genre": null,
-   "recorded_at": null,
-   "id": "16ea08b3-d662-4c4d-af81-a18885e30d86",
    "dialect_id": "b1420889-b248-4855-985c-a19fa88764e2",
-   "speaker_age_group": null,
-   "consent_public": true,
-   "consent_ai_training": true,
-   "licence": "CC-BY-NC-4.0",
+   "speaker": "speaker-3",
+   "duration_seconds": "10.0",
    "status": "transcribed",
-   "created_at": "2026-10-30T16:18:56.003194Z",
-   "speaker": "speaker-3"
+   "passages": [
+    {
+     "start_ms": 0,
+     "end_ms": 7379,
+     "corrected": true,
+     "changed": false,
+     "verified": false
+    }
+   ]
   },
   {
-   "title": "test tulu",
-   "duration_seconds": "6.0",
-   "genre": "conversation",
-   "recorded_at": null,
-   "id": "4dc5f0ad-a687-4fd5-90f4-ae130bd6ee6e",
    "dialect_id": "4dd3f8cd-156b-4bf4-8e1e-c51c00777c30",
-   "speaker_age_group": null,
-   "consent_public": true,
-   "consent_ai_training": true,
-   "licence": "CC-BY-NC-4.0",
+   "speaker": "speaker-4",
+   "duration_seconds": "6.0",
    "status": "transcribed",
-   "created_at": "2026-10-30T12:50:52.951529Z",
-   "speaker": "speaker-4"
+   "passages": [
+    {
+     "start_ms": 0,
+     "end_ms": 4779,
+     "corrected": true,
+     "changed": false,
+     "verified": false
+    }
+   ]
   },
   {
-   "title": "test",
-   "duration_seconds": "4.0",
-   "genre": "conversation",
-   "recorded_at": null,
-   "id": "35842ed8-6caf-4ba7-b68f-efb1c1b71072",
    "dialect_id": "5a248958-11f2-4d68-920d-0a4f0f6f38e1",
-   "speaker_age_group": null,
-   "consent_public": true,
-   "consent_ai_training": true,
-   "licence": "CC-BY-NC-4.0",
-   "status": "transcribed",
-   "created_at": "2026-10-30T12:45:07.852989Z",
-   "speaker": "speaker-5"
-  },
-  {
-   "title": "king",
+   "speaker": "speaker-5",
    "duration_seconds": "4.0",
-   "genre": "conversation",
-   "recorded_at": null,
-   "id": "784f07c7-77a7-41f1-9a32-ce91062f2ec1",
-   "dialect_id": null,
-   "speaker_age_group": null,
-   "consent_public": true,
-   "consent_ai_training": true,
-   "licence": "CC-BY-NC-4.0",
    "status": "transcribed",
-   "created_at": "2026-10-30T12:44:00.784140Z",
-   "speaker": "speaker-6"
+   "passages": [
+    {
+     "start_ms": 0,
+     "end_ms": 3000,
+     "corrected": false,
+     "changed": false,
+     "verified": false
+    }
+   ]
   },
   {
-   "title": "ex",
-   "duration_seconds": "9.0",
-   "genre": "conversation",
-   "recorded_at": null,
-   "id": "34f3da37-eba1-4297-b5dc-d3980d184034",
+   "dialect_id": null,
+   "speaker": "speaker-6",
+   "duration_seconds": "4.0",
+   "status": "transcribed",
+   "passages": [
+    {
+     "start_ms": 0,
+     "end_ms": 3300,
+     "corrected": false,
+     "changed": false,
+     "verified": false
+    }
+   ]
+  },
+  {
    "dialect_id": "e73c078b-d36c-4a63-bee5-7818eddc3166",
-   "speaker_age_group": null,
-   "consent_public": true,
-   "consent_ai_training": true,
-   "licence": "CC-BY-NC-4.0",
-   "status": "transcribed",
-   "created_at": "2026-10-30T11:01:32.883434Z",
-   "speaker": "speaker-7"
-  },
-  {
-   "title": "frechh",
-   "duration_seconds": "5.0",
-   "genre": null,
-   "recorded_at": null,
-   "id": "e6050417-9fa0-4770-82d4-958f30965ea9",
-   "dialect_id": null,
-   "speaker_age_group": null,
-   "consent_public": true,
-   "consent_ai_training": true,
-   "licence": "CC-BY-NC-4.0",
-   "status": "transcribed",
-   "created_at": "2026-10-30T07:57:24.805283Z",
-   "speaker": "speaker-8"
-  },
-  {
-   "title": "Telugu",
-   "duration_seconds": "8.0",
-   "genre": "conversation",
-   "recorded_at": null,
-   "id": "aa413976-8589-43df-8709-6e0fee6c2c0e",
-   "dialect_id": "7ddc3027-f4fd-489a-8583-8db72f8f6e62",
-   "speaker_age_group": "elder",
-   "consent_public": true,
-   "consent_ai_training": true,
-   "licence": "CC-BY-NC-4.0",
-   "status": "transcribed",
-   "created_at": "2026-10-30T07:55:09.715941Z",
-   "speaker": "speaker-9"
-  },
-  {
-   "title": "gzgdgdsg",
-   "duration_seconds": "4.0",
-   "genre": null,
-   "recorded_at": null,
-   "id": "ef2cb498-0487-4d03-b3a4-b3539926d934",
-   "dialect_id": "69edbdc5-a7c8-4b8a-b935-250ee6b9b969",
-   "speaker_age_group": null,
-   "consent_public": true,
-   "consent_ai_training": true,
-   "licence": "CC-BY-NC-4.0",
-   "status": "transcribed",
-   "created_at": "2026-10-30T07:50:08.185257Z",
-   "speaker": "speaker-10"
-  },
-  {
-   "title": "beary",
+   "speaker": "speaker-7",
    "duration_seconds": "9.0",
-   "genre": "other",
-   "recorded_at": null,
-   "id": "4a25ece8-b3be-46ae-99dd-9c69a85cd420",
+   "status": "transcribed",
+   "passages": [
+    {
+     "start_ms": 0,
+     "end_ms": 8519,
+     "corrected": false,
+     "changed": false,
+     "verified": false
+    }
+   ]
+  },
+  {
+   "dialect_id": null,
+   "speaker": "speaker-8",
+   "duration_seconds": "5.0",
+   "status": "transcribed",
+   "passages": [
+    {
+     "start_ms": 0,
+     "end_ms": 4920,
+     "corrected": false,
+     "changed": false,
+     "verified": false
+    }
+   ]
+  },
+  {
+   "dialect_id": "7ddc3027-f4fd-489a-8583-8db72f8f6e62",
+   "speaker": "speaker-9",
+   "duration_seconds": "8.0",
+   "status": "transcribed",
+   "passages": [
+    {
+     "start_ms": 0,
+     "end_ms": 5400,
+     "corrected": true,
+     "changed": false,
+     "verified": false
+    }
+   ]
+  },
+  {
    "dialect_id": "69edbdc5-a7c8-4b8a-b935-250ee6b9b969",
-   "speaker_age_group": "young adult",
-   "consent_public": true,
-   "consent_ai_training": true,
-   "licence": "CC-BY-NC-4.0",
+   "speaker": "speaker-10",
+   "duration_seconds": "4.0",
+   "status": "transcribed",
+   "passages": [
+    {
+     "start_ms": 0,
+     "end_ms": 3899,
+     "corrected": false,
+     "changed": false,
+     "verified": false
+    }
+   ]
+  },
+  {
+   "dialect_id": "69edbdc5-a7c8-4b8a-b935-250ee6b9b969",
+   "speaker": "speaker-11",
+   "duration_seconds": "9.0",
    "status": "verified",
-   "created_at": "2026-10-30T07:40:19.144526Z",
-   "speaker": "speaker-11"
+   "passages": [
+    {
+     "start_ms": 0,
+     "end_ms": 6080,
+     "corrected": true,
+     "changed": false,
+     "verified": true
+    }
+   ]
   }
- ],
- "segs": {
-  "be86752b-4aaa-4024-ba79-904b3efc63ae": [
-   {
-    "id": "78d22c57-dee2-4288-b5b7-faa1b6729f5b",
-    "recording_id": "be86752b-4aaa-4024-ba79-904b3efc63ae",
-    "seq": 1,
-    "start_ms": 0,
-    "end_ms": 8039,
-    "asr_text": "ಹಲೋ ನಾನೆಸ್ಟಕ್ಲುವ ಕಿಷಣ್ ನಾವು ಹಾಕತವನ್ನಗೆ ಬಂದೆದಿವಿ ಗಿಲ್ತಿವಾಯಿಲ್ಲವಾಕೊತಿಲಾ",
-    "corrected_text": null,
-    "transliteration": null,
-    "translation_en": null,
-    "speaker_label": null,
-    "verified_by": null,
-    "verified_at": null
-   },
-   {
-    "id": "6434abe6-b0db-4a82-a180-599de6bd3e70",
-    "recording_id": "be86752b-4aaa-4024-ba79-904b3efc63ae",
-    "seq": 2,
-    "start_ms": 8039,
-    "end_ms": 11179,
-    "asr_text": "ಹೋಪ್ಸಲುವಾಗು ಹೋಪ್",
-    "corrected_text": null,
-    "transliteration": null,
-    "translation_en": null,
-    "speaker_label": null,
-    "verified_by": null,
-    "verified_at": null
-   }
-  ],
-  "f5b3d130-40c3-4763-8e8f-53fd0c2bc6bf": [
-   {
-    "id": "28dd47d9-ce46-457c-b094-92e2af104799",
-    "recording_id": "f5b3d130-40c3-4763-8e8f-53fd0c2bc6bf",
-    "seq": 1,
-    "start_ms": 0,
-    "end_ms": 4140,
-    "asr_text": "ಕಲೋ ಎಂಗಿದಿರಾ ನಾಚ್ಯನಾಗಿದಿನ್ನೀ",
-    "corrected_text": "ಕಲೋ ಎಂಗಿದಿರಾ ನಾಚ್ಯನಾಗಿದಿನ್ನೀ",
-    "transliteration": "kalo engidira naacyaanagidinni",
-    "translation_en": "Hey, how are you? I am fine.",
-    "speaker_label": null,
-    "verified_by": "73b28408-ef63-4da7-9e66-806fadf8139e",
-    "verified_at": "2026-11-14T05:41:12.604398Z"
-   }
-  ],
-  "16ea08b3-d662-4c4d-af81-a18885e30d86": [
-   {
-    "id": "78fc16ec-805d-4d0a-93ee-3d2cb92e6cae",
-    "recording_id": "16ea08b3-d662-4c4d-af81-a18885e30d86",
-    "seq": 1,
-    "start_ms": 0,
-    "end_ms": 7379,
-    "asr_text": "मेरा नाम आश्रम मैं 11 स्टैंडर्ड में हूँ मन जी खाने पसंद",
-    "corrected_text": "मेरा नाम आश्रम मैं 11 स्टैंडर्ड में हूँ मन जी खाने पसंद",
-    "transliteration": "mera naam aashram main 11 standard mein hoon man ji khane pasand",
-    "translation_en": "My name is Ashram. I am in 11th standard. I like food.",
-    "speaker_label": null,
-    "verified_by": null,
-    "verified_at": null
-   }
-  ],
-  "4dc5f0ad-a687-4fd5-90f4-ae130bd6ee6e": [
-   {
-    "id": "bc294a10-ccf9-4895-882d-a7629ee7d929",
-    "recording_id": "4dc5f0ad-a687-4fd5-90f4-ae130bd6ee6e",
-    "seq": 1,
-    "start_ms": 0,
-    "end_ms": 4779,
-    "asr_text": "ಯಂಚ ಉಲ್ಲಾರ್ ನಿನ್ನ ನೋಡದು ತುಂಬ ಖುಶಿ ಆಪು",
-    "corrected_text": "ಯಂಚ ಉಲ್ಲಾರ್ ನಿನ್ನ ನೋಡದು ತುಂಬ ಖುಶಿ ಆಪು",
-    "transliteration": null,
-    "translation_en": null,
-    "speaker_label": null,
-    "verified_by": null,
-    "verified_at": null
-   }
-  ],
-  "35842ed8-6caf-4ba7-b68f-efb1c1b71072": [
-   {
-    "id": "4c2200e6-9e20-46ae-a913-f2d96c6c471f",
-    "recording_id": "35842ed8-6caf-4ba7-b68f-efb1c1b71072",
-    "seq": 1,
-    "start_ms": 0,
-    "end_ms": 3000,
-    "asr_text": "ನನ್ನ ಹೆಸ್ರು ಲಕ್ಷೆ",
-    "corrected_text": null,
-    "transliteration": null,
-    "translation_en": null,
-    "speaker_label": null,
-    "verified_by": null,
-    "verified_at": null
-   }
-  ],
-  "784f07c7-77a7-41f1-9a32-ce91062f2ec1": [
-   {
-    "id": "899e703e-ee6c-4528-aba7-8a8f6f7e86d3",
-    "recording_id": "784f07c7-77a7-41f1-9a32-ce91062f2ec1",
-    "seq": 1,
-    "start_ms": 0,
-    "end_ms": 3300,
-    "asr_text": "ننہے سرولکش",
-    "corrected_text": null,
-    "transliteration": null,
-    "translation_en": null,
-    "speaker_label": null,
-    "verified_by": null,
-    "verified_at": null
-   }
-  ],
-  "34f3da37-eba1-4297-b5dc-d3980d184034": [
-   {
-    "id": "870f1105-bbd0-4b65-9cf3-483ad6e1b1e7",
-    "recording_id": "34f3da37-eba1-4297-b5dc-d3980d184034",
-    "seq": 1,
-    "start_ms": 0,
-    "end_ms": 8519,
-    "asr_text": "എന്ദെ പേര് അന്നു അനു?",
-    "corrected_text": null,
-    "transliteration": null,
-    "translation_en": null,
-    "speaker_label": null,
-    "verified_by": null,
-    "verified_at": null
-   }
-  ],
-  "e6050417-9fa0-4770-82d4-958f30965ea9": [
-   {
-    "id": "16ae596f-5840-4ebe-baef-3ff781a8569c",
-    "recording_id": "e6050417-9fa0-4770-82d4-958f30965ea9",
-    "seq": 1,
-    "start_ms": 0,
-    "end_ms": 4920,
-    "asr_text": "One Story, The Bellashim Zaysa Zans",
-    "corrected_text": null,
-    "transliteration": null,
-    "translation_en": null,
-    "speaker_label": null,
-    "verified_by": null,
-    "verified_at": null
-   }
-  ],
-  "aa413976-8589-43df-8709-6e0fee6c2c0e": [
-   {
-    "id": "f8102141-7aca-4b27-883d-df7827ca563f",
-    "recording_id": "aa413976-8589-43df-8709-6e0fee6c2c0e",
-    "seq": 1,
-    "start_ms": 0,
-    "end_ms": 5400,
-    "asr_text": "నా పేరు రోహన్ను నేను వేబ్ టెక్నోలోజి లాబ్ లో ఉందాను",
-    "corrected_text": "నా పేరు రోహన్ను నేను వేబ్ టెక్నోలోజి లాబ్ లో ఉందాను",
-    "transliteration": "naa peru rohannu nenu veb teknoloji lab lo undaanu",
-    "translation_en": "My name is Rohann, I am in the Web Technology Lab.",
-    "speaker_label": null,
-    "verified_by": null,
-    "verified_at": null
-   }
-  ],
-  "ef2cb498-0487-4d03-b3a4-b3539926d934": [
-   {
-    "id": "d2f2be0c-86a1-4f8c-90da-15b5c76604c9",
-    "recording_id": "ef2cb498-0487-4d03-b3a4-b3539926d934",
-    "seq": 1,
-    "start_ms": 0,
-    "end_ms": 3899,
-    "asr_text": "ವಾಗಾರಿಕಾವಿದ ಕೊಳಿದ್ದೆ",
-    "corrected_text": null,
-    "transliteration": null,
-    "translation_en": null,
-    "speaker_label": null,
-    "verified_by": null,
-    "verified_at": null
-   }
-  ],
-  "4a25ece8-b3be-46ae-99dd-9c69a85cd420": [
-   {
-    "id": "7d39b273-f8a5-43cc-9b42-5a9e1a0c2dfd",
-    "recording_id": "4a25ece8-b3be-46ae-99dd-9c69a85cd420",
-    "seq": 1,
-    "start_ms": 0,
-    "end_ms": 6080,
-    "asr_text": "ನಿಂಕೆಲ್ಲ ಎಪ್ಪ ಬುಂದಿ ಬಂದಮಾ",
-    "corrected_text": "ನಿಂಕೆಲ್ಲ ಎಪ್ಪ ಬುಂದಿ ಬಂದಮಾ",
-    "transliteration": "ninkella eppa bundi bandama",
-    "translation_en": "When will you all come?",
-    "speaker_label": null,
-    "verified_by": "73b28408-ef63-4da7-9e66-806fadf8139e",
-    "verified_at": "2026-10-30T07:42:37.639671Z"
-   }
-  ]
- }
+ ]
 }
