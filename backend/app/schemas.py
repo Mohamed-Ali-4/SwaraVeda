@@ -314,6 +314,9 @@ class DialectEffort(BaseModel):
     asr_language: Optional[str] = None
     passages: int
     verified: int
+    recordings: int
+    speakers: int
+    verified_minutes: float
     cer: Optional[float] = None
     wer: Optional[float] = None
 
@@ -321,7 +324,9 @@ class DialectEffort(BaseModel):
 class ProxyEvalIn(BaseModel):
     # Whisper language codes to compare; "auto" is the no-hint baseline.
     candidates: List[str] = Field(min_length=1, max_length=5)
-    sample: int = Field(default=10, ge=1, le=30)
+    sample: int = Field(default=10, ge=1, le=100)
+    # Score only passages a verifier has approved, as a published evaluation should.
+    verified_only: bool = False
 
 
 class ProxyEvalOut(BaseModel):

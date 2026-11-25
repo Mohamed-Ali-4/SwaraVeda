@@ -98,17 +98,35 @@ interface Effort {
   asr_language?: string | null;
   passages: number;
   verified: number;
+  recordings: number;
+  speakers: number;
+  verified_minutes: number;
   cer?: number | null;
   wer?: number | null;
 }
 
-interface Candidate { language: string; name: string; cer?: number | null; wer?: number | null; passages: number }
+interface Candidate {
+  language: string;
+  name: string;
+  cer?: number | null;
+  wer?: number | null;
+  passages: number;
+  vs_auto?: { better: number; worse: number; same: number } | null;
+}
 interface Comparison {
   id: string;
   status: string;
   progress: number;
   error?: string | null;
-  result?: { passages: number; best: string | null; candidates: Candidate[] } | null;
+  result?: {
+    passages: number;
+    verified_only?: boolean;
+    recordings?: number;
+    speakers?: number;
+    minutes?: number;
+    best: string | null;
+    candidates: Candidate[];
+  } | null;
 }
 
 const PROXY_LANGS: Record<string, string> = {
@@ -127,6 +145,8 @@ function ProxyLanguages() {
   const [candidates, setCandidates] = useState<string[]>([]);
   const [comparison, setComparison] = useState<Comparison | null>(null);
   const [starting, setStarting] = useState(false);
+  const [verifiedOnly, setVerifiedOnly] = useState(true);
+  const [sample, setSample] = useState(30);
 
   const loadEffort = () => api.get('/dialects/effort').then((r) => setRows(r.data)).catch(() => setRows([]));
   useEffect(() => { loadEffort(); }, []);
@@ -154,7 +174,7 @@ function ProxyLanguages() {
     if (!open) return;
     setStarting(true);
     try {
-      const r = await api.post(`/dialects/${open.dialect_id}/proxy-eval`, { candidates, sample: 10 });
+      const r = await api.post(`/dialects/${open.dialect_id}/proxy-eval`, { candidates, sample, verified_only: verifiedOnly });
       setComparison(r.data);
     } catch (err) {
       toast.error(errorMessage(err, 'Could not start the comparison'));
@@ -202,6 +222,7 @@ function ProxyLanguages() {
               <tr className="border-b border-ink/80 text-xs uppercase tracking-wider text-muted">
                 <th className="py-2 pr-3 font-semibold">Dialect</th>
                 <th className="py-2 pr-3 font-semibold">Listened to as</th>
+                <th className="py-2 pr-3 font-semibold" title="Speakers · recordings">Data</th>
                 <th className="py-2 pr-3 font-semibold">Corrected</th>
                 <th className="py-2 pr-3 font-semibold" title="Character error rate">CER</th>
                 <th className="py-2 pr-3 font-semibold" title="Word error rate">WER</th>
@@ -213,7 +234,8 @@ function ProxyLanguages() {
                 <tr key={r.dialect_id} className="border-b border-line">
                   <td className="py-2.5 pr-3 font-medium text-ink">{r.name}</td>
                   <td className="py-2.5 pr-3 text-ink-soft">{langName(r.asr_language)}</td>
-                  <td className="py-2.5 pr-3 text-ink-soft">{r.passages} <span className="text-muted">({r.verified} verified)</span></td>
+                  <td className="py-2.5 pr-3 text-ink-soft">{r.speakers} spk · {r.recordings} rec</td>
+                  <td className="py-2.5 pr-3 text-ink-soft">{r.passages} <span className="text-muted">({r.verified} verified, {r.verified_minutes} min)</span></td>
                   <td className="py-2.5 pr-3 tabular">{pct(r.cer)}</td>
                   <td className="py-2.5 pr-3 tabular">{pct(r.wer)}</td>
                   <td className="py-2.5 text-right">
@@ -230,8 +252,8 @@ function ProxyLanguages() {
         <div className="mt-6 border border-line bg-sunken/40 p-5">
           <h3 className="text-lg font-semibold text-ink">Which language should Vani listen for in {open.name}?</h3>
           <p className="mt-1 text-sm text-muted">
-            Vani re-transcribes up to 10 corrected passages with each language and counts how much would need correcting.
-            “Detect automatically” is the no-hint baseline.
+            Vani re-transcribes the passages with each language and counts how much would need correcting.
+            “Detect automatically” is the no-hint baseline; keep it ticked to see, passage by passage, whether a language beats it.
           </p>
           <div className="mt-4 flex flex-wrap gap-2">
             {['auto', ...Object.keys(PROXY_LANGS)].map((code) => (
@@ -241,24 +263,53 @@ function ProxyLanguages() {
               </button>
             ))}
           </div>
+          <div className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-3 text-sm text-ink-soft">
+            <label className="flex items-center gap-2">
+              <input type="checkbox" checked={verifiedOnly} onChange={(e) => setVerifiedOnly(e.target.checked)} className="h-4 w-4 accent-saffron-600" />
+              Verified passages only (use this for published results)
+            </label>
+            <label className="flex items-center gap-2">
+              Up to
+              <select value={sample} onChange={(e) => setSample(Number(e.target.value))} className="border border-line bg-surface px-2 py-1">
+                {[10, 30, 100].map((n) => <option key={n} value={n}>{n}</option>)}
+              </select>
+              passages
+            </label>
+          </div>
           <Button className="mt-4" onClick={start} loading={starting || !!running} disabled={candidates.length === 0}>
             {running ? `Comparing… ${comparison?.progress ?? 0}%` : `Compare ${candidates.length} option${candidates.length === 1 ? '' : 's'}`}
           </Button>
           {comparison?.status === 'failed' && <div className="mt-4"><Alert>{comparison.error || 'The comparison failed.'}</Alert></div>}
           {result && (
             <div className="mt-5">
-              <p className="text-sm text-muted">Scored on {result.passages} corrected passage{result.passages === 1 ? '' : 's'}. Lower is better.</p>
-              <table className="mt-2 w-full max-w-lg text-left text-[15px]">
+              <p className="text-sm text-muted">
+                Scored on {result.passages} {result.verified_only ? 'verified' : 'corrected'} passage{result.passages === 1 ? '' : 's'}
+                {result.recordings != null && ` from ${result.recordings} recording${result.recordings === 1 ? '' : 's'} by ${result.speakers} speaker${result.speakers === 1 ? '' : 's'} (${result.minutes} min)`}.
+                Lower is better.
+              </p>
+              <table className="mt-2 w-full max-w-2xl whitespace-nowrap text-left text-[15px]">
                 <tbody>
                   {[...result.candidates].sort((a, b) => (a.cer ?? 9) - (b.cer ?? 9)).map((c) => (
                     <tr key={c.language} className={`border-b border-line ${c.language === result.best ? 'font-semibold text-ink' : 'text-ink-soft'}`}>
                       <td className="py-2 pr-3">{langName(c.language)}{c.language === result.best && ' · best'}</td>
                       <td className="py-2 pr-3 tabular">CER {pct(c.cer)}</td>
-                      <td className="py-2 tabular">WER {pct(c.wer)}</td>
+                      <td className="py-2 pr-3 tabular">WER {pct(c.wer)}</td>
+                      <td className="py-2 text-sm text-muted">
+                        {c.vs_auto && `better than automatic on ${c.vs_auto.better} of ${c.vs_auto.better + c.vs_auto.worse + c.vs_auto.same}`}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
+              <Button className="mt-4 mr-3" variant="secondary" size="sm" onClick={() => {
+                const lines = [['Dialect', 'Language', 'CER %', 'WER %', 'Better than automatic', 'Passages', 'Recordings', 'Speakers', 'Minutes', 'Verified only'].join('\t')];
+                result.candidates.forEach((c) => lines.push([
+                  open.name, langName(c.language), c.cer == null ? '' : (c.cer * 100).toFixed(1), c.wer == null ? '' : (c.wer * 100).toFixed(1),
+                  c.vs_auto ? `${c.vs_auto.better}/${c.vs_auto.better + c.vs_auto.worse + c.vs_auto.same}` : '',
+                  result.passages, result.recordings ?? '', result.speakers ?? '', result.minutes ?? '', result.verified_only ? 'yes' : 'no',
+                ].join('\t')));
+                navigator.clipboard.writeText(lines.join('\n')).then(() => toast.success('Results copied. Paste them into a spreadsheet or send them over.'), () => toast.error('Could not copy.'));
+              }}>Copy results</Button>
               {result.best && (result.best === 'auto' ? !!open.asr_language : result.best !== open.asr_language) ? (
                 <Button className="mt-4" onClick={() => apply(result.best)}>Listen to {open.name} as {langName(result.best)}</Button>
               ) : result.best ? (
