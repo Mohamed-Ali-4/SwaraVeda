@@ -98,7 +98,7 @@ function boxed(lines) { // algorithm box
 
 // ---------- front matter (one column)
 const front = [
-  new Paragraph({ children: [r('Correction Effort as Signal: Choosing Proxy Languages for Speech Recognition of Unwritten Indian Dialects in a Consent-First Community Archive', { size: 48 })],
+  new Paragraph({ children: [r('Choosing Proxy Languages for Speech Recognition of Unwritten Indian Dialects Using Correction Effort', { size: 48 })],
     alignment: AlignmentType.CENTER, spacing: { after: 200 } }),
 ];
 const authors = [
