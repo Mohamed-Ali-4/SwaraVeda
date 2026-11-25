@@ -193,7 +193,7 @@ B.push(boxed([
   '2: **for each** ℓ ∈ *L*(*d*) ∪ {auto} **do**',
   '3:     **for each** *s* ∈ *T* **do** *h*_{s}(ℓ) ← Whisper(clip(*s*), language = ℓ)',
   '4:     C(*d*, ℓ) ← Σ ED(*h*_{s}(ℓ), *r*_{s}) / Σ |*r*_{s}|   (Eq. 1)',
-  '5: ℓ* ← argmin_{ℓ} C(*d*, ℓ);  set the hint of *d* to ℓ*',
+  '5: ℓ_{best} ← argmin_{ℓ} C(*d*, ℓ);  set the hint of *d* to ℓ_{best}',
   '6: **repeat** when *d* gains *k* new verified segments',
 ]));
 B.push(new Paragraph({ children: [], spacing: { after: 80 } }));
