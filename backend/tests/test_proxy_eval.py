@@ -33,7 +33,7 @@ def tulu(session: Session):
     d = Dialect(name="Tulu", script="Kannada", asr_language="kn")
     session.add(d)
     session.commit()
-    rec = Recording(title="Paddana", dialect_id=d.id, audio_url="https://example.com/p.webm")
+    rec = Recording(title="Paddana", dialect_id=d.id, audio_url="https://example.com/p.webm", speaker_name="Kamala Shetty")
     session.add(rec)
     session.commit()
     now = datetime.now(timezone.utc)
@@ -58,6 +58,8 @@ def test_effort_by_dialect(client, admin_headers, tulu):
     row = rows[0]
     assert row["name"] == "Tulu" and row["asr_language"] == "kn"
     assert row["passages"] == 2 and row["verified"] == 1
+    assert row["recordings"] == 1 and row["speakers"] == 1
+    assert row["verified_minutes"] == round(2000 / 60000, 2)  # only the verified 0-2 s passage
     # "ballala kote male" → "ballala koted male" is one inserted letter; "paddana" is exact.
     assert row["cer"] == round(1 / (len("ballala koted male") + len("paddana")), 4)
     assert row["wer"] == round(1 / 4, 4)
@@ -108,6 +110,12 @@ def test_comparison_picks_the_proxy_with_least_correction_effort(client, admin_h
     assert result["best"] == "kn"
     scores = {c["language"]: c["cer"] for c in result["candidates"]}
     assert scores["kn"] == 0.0 and scores["ml"] > 0 and scores["auto"] > scores["ml"]
+    assert result["recordings"] == 1 and result["speakers"] == 1 and result["verified_only"] is False
+    assert result["minutes"] == round(4000 / 60000, 2)
+    # Paired comparison with automatic detection, passage by passage.
+    vs_auto = {c["language"]: c.get("vs_auto") for c in result["candidates"]}
+    assert vs_auto["kn"] == {"better": 2, "worse": 0, "same": 0}
+    assert vs_auto["auto"] is None
     stored = session.get(Job, UUID(job_id))
     assert stored.kind == "proxy_eval" and json.loads(stored.result)["best"] == "kn"
 
@@ -143,3 +151,26 @@ def test_cut_clip_extracts_one_passage(tmp_path):
                     "-ac", "2", "-ar", "44100", str(src)], check=True)
     clip = proxy_eval.cut_clip(src, 1000, 3000, tmp_path / "clip.ogg")
     assert proxy_eval.audio.probe_duration(clip) == pytest.approx(2.0, abs=0.1)
+
+
+def test_comparison_on_verified_passages_only(client, admin_headers, tulu, fake_whisper):
+    resp = client.post(f"/dialects/{tulu.id}/proxy-eval", headers=admin_headers,
+                       json={"candidates": ["kn", "auto"], "sample": 100, "verified_only": True})
+    assert resp.status_code == 202
+    result = client.get(f"/dialects/{tulu.id}/proxy-eval", headers=admin_headers).json()["result"]
+    assert result["verified_only"] is True and result["passages"] == 1
+
+
+def test_verified_only_needs_a_verified_passage(client, admin_headers, session, monkeypatch):
+    monkeypatch.setattr(settings, "GROQ_API_KEY", "test-key")
+    d = Dialect(name="Kodava", asr_language="kn")
+    session.add(d)
+    session.commit()
+    rec = Recording(title="Song", dialect_id=d.id, audio_url="https://example.com/s.webm")
+    session.add(rec)
+    session.commit()
+    session.add(Segment(recording_id=rec.id, seq=1, start_ms=0, end_ms=1000, asr_text="a", corrected_text="b"))
+    session.commit()
+    resp = client.post(f"/dialects/{d.id}/proxy-eval", headers=admin_headers,
+                       json={"candidates": ["kn"], "verified_only": True})
+    assert resp.status_code == 400 and "Verify at least one" in resp.json()["detail"]

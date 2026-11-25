@@ -135,13 +135,16 @@ def start_proxy_eval(
     latest = _latest_eval(session, dialect_id)
     if latest and latest.status in ("queued", "running"):
         return _eval_out(latest)
-    if not proxy_eval.evaluation_sample(session, dialect_id, 1, "check"):
+    if not proxy_eval.evaluation_sample(session, dialect_id, 1, "check", body.verified_only):
+        if body.verified_only:
+            raise HTTPException(400, "Verify at least one corrected passage of this dialect first.")
         raise HTTPException(400, "Correct at least one passage of this dialect first: its corrections are the yardstick.")
     job = Job(dialect_id=dialect_id, kind="proxy_eval", status="queued")
     session.add(job)
     session.commit()
     session.refresh(job)
-    background.add_task(proxy_eval.run_evaluation, job.id, candidates, min(body.sample, proxy_eval.MAX_SAMPLE))
+    background.add_task(proxy_eval.run_evaluation, job.id, candidates, min(body.sample, proxy_eval.MAX_SAMPLE),
+                        body.verified_only)
     return _eval_out(job)
 
 
