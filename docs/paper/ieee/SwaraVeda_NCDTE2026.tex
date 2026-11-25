@@ -25,7 +25,7 @@ Bengaluru, India \\
 \maketitle
 
 \begin{abstract}
-Most of India's spoken varieties have little or no written text and are not supported by speech recognition. Multilingual models such as Whisper can transcribe an unsupported dialect only as one of the languages they know, and the best choice of this \emph{proxy language} is not obvious: Tulu, for example, is written in Kannada script but is lexically distinct from Kannada. We present SwaraVeda, a deployed, consent-first community archive in which members record speech in the browser (also offline), an assistant named Vani drafts a time-aligned transcript with Whisper large-v3, native speakers correct every passage while listening, and verifiers approve it. Because the archive keeps both the machine draft and the human correction of every passage, the edit distance between them is available at no extra annotation cost. We propose using this correction effort as a signal to rank candidate proxy languages per dialect and to update the choice as verified data accumulates, implement this selection in the archive, and define an evaluation protocol based on character and word error rates. The archive catalogues 139 dialects with their script, region, ISO 639-3 code and a proxy-language hint, separates consent for public listening from consent for AI training, and exports verified passages as a training dataset for future dialect-specific models.
+Most of India's spoken varieties have little or no written text and are not supported by speech recognition. Multilingual models such as Whisper can transcribe an unsupported dialect only as one of the languages they know, and the best choice of this \emph{proxy language} is not obvious: Tulu, for example, is written in Kannada script but is lexically distinct from Kannada. We present SwaraVeda, a deployed, consent-first community archive in which members record speech in the browser (also offline), an assistant named Vani drafts a time-aligned transcript with Whisper large-v3, native speakers correct every passage while listening, and verifiers approve it. Because the archive keeps both the machine draft and the human correction of every passage, the edit distance between them is available at no extra annotation cost. We propose using this correction effort as a signal to rank candidate proxy languages per dialect and to update the choice as verified data accumulates, and implement this selection in the archive. On 100 utterances of Odia, an Indian language that Whisper does not support, from the FLEURS benchmark, correction effort selects Hindi rather than the related Bengali and Assamese and lowers the character error rate from 44.6\% with automatic language identification to 37.7\%. The archive catalogues 139 dialects with their script, region, ISO 639-3 code and a proxy-language hint, separates consent for public listening from consent for AI training, and exports verified passages as a training dataset for future dialect-specific models.
 \end{abstract}
 
 \begin{IEEEkeywords}
@@ -44,7 +44,7 @@ This paper makes the following contributions:
 \item \textbf{SwaraVeda}, a deployed web archive for endangered Indian dialects that combines in-browser and offline recording, per-recording dual consent, AI drafting, community correction and verification, and search by words and by meaning (Section~\ref{sec:system}).
 \item \textbf{Correction effort as a signal}: a method that uses the edit distance between Whisper's draft and the verified human correction to rank and update the proxy language of each dialect, without any annotation beyond the community's normal work (Section~\ref{sec:method}).
 \item A catalogue of \textbf{139 Indian dialects} with script, region, ISO 639-3 code and a proxy-language hint, and a \textbf{consent-scoped dataset export} that pairs every machine draft with its correction (Sections~\ref{sec:system} and \ref{sec:results}).
-\item An implementation of this selection inside the deployed archive, and an evaluation protocol that compares automatic language identification with candidate proxies by character and word error rate (Sections~\ref{sec:system} and \ref{sec:setup}).
+\item An implementation of this selection inside the deployed archive, per-dialect pilot data from it, and an evaluation on Odia from the FLEURS benchmark in which the selected proxy lowers the character error rate by 6.9 points relative to automatic language identification (Sections~\ref{sec:system}, \ref{sec:setup} and \ref{sec:results}).
 \end{itemize}
 
 \section{Related Work}
@@ -94,7 +94,7 @@ Exact-word search uses PostgreSQL full-text search with the language-neutral \em
 Verifiers can export, as JSON Lines or CSV, every verified passage whose speaker consented to AI training. Each row holds the audio link, start and end times, the machine draft, the human correction, the transliteration, the translation, the dialect and the licence. This pairing of draft and correction is what the method in Section~\ref{sec:method} relies on.
 
 \subsection{Proxy-Language Selection in the Archive}
-The method of Section~\ref{sec:method} is built into the archive. Verifiers see, for every dialect, the character and word error rate between Vani's drafts and the community's corrections, start a comparison of candidate languages that runs as a background job (up to 30 corrected passages, verified ones first, with retries when the speech service rate-limits requests), and switch the dialect's proxy to the best candidate with one click.
+The method of Section~\ref{sec:method} is built into the archive. Verifiers see, for every dialect, the character and word error rate between Vani's drafts and the community's corrections, start a comparison of candidate languages that runs as a background job (up to 100 corrected passages, verified ones first or verified ones only, with retries when the speech service rate-limits requests), and switch the dialect's proxy to the best candidate with one click.
 
 \section{Correction Effort as a Proxy-Selection Signal}\label{sec:method}
 Let $d$ be a dialect and $L(d)$ a small set of candidate proxy languages, chosen by script and family (for Tulu, \{Kannada, Malayalam\}). For a verified segment $s$ of dialect $d$, let $r_s$ be the human correction and $h_s(\ell)$ the draft produced with proxy $\ell \in L(d)$. With $\mathrm{ED}$ the Levenshtein edit distance \cite{levenshtein1966} over characters, the correction effort of proxy $\ell$ for dialect $d$ is the micro-averaged character error rate
@@ -129,8 +129,35 @@ In normal operation each segment is transcribed only with the current proxy, so 
 \vspace{2pt}\hrule
 \end{figure}
 
-\section{Evaluation Protocol}\label{sec:setup}
-The archive implements Algorithm~1 (Section~\ref{sec:system}); this section fixes how it is to be evaluated so that results are comparable across dialects. The first targets are Tulu, Kodava and Beary, all three commonly written in Kannada script and with Kannada and Malayalam as candidate proxies, compared against automatic language identification. For each dialect, native speakers record short clips of conversation, narrative and song with both consents and correct and verify the transcripts in SwaraVeda. Every verified clip is transcribed with Whisper large-v3 (temperature 0) under each candidate, and micro-averaged CER and WER (Eq.~\ref{eq:cer}) are computed against the verified corrections after removing punctuation and normalising Unicode to NFC. Because the human references already exist, each comparison costs only $|L(d)|+1$ recognition calls per clip.
+\section{Experimental Setup}\label{sec:setup}
+\subsection{Pilot Data in the Archive}
+Table~\ref{tab:pilot} lists everything the live archive held when this paper was written: 11 recordings totalling 75\,s from 11 speakers in 8 dialects (two recordings were saved without a dialect), made while testing the system. Of the 12 passages, 5 were corrected and 2 verified, and in every corrected passage the speaker kept Vani's draft unchanged. The table shows how the archive reports data per dialect, but these numbers are far too small to compare proxy languages; recording Tulu, Kodava and Beary in the field is ongoing.
+
+\begin{table}[t]
+\caption{Pilot Data in the Live Archive}
+\label{tab:pilot}
+\centering
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{llrrrrr}
+\toprule
+Dialect & Proxy & Rec. & Speakers & Passages & Corrected & Verified \\
+\midrule
+Beary & kn & 2 & 2 & 2 & 1 & 1 \\
+Birhor & hi & 1 & 1 & 1 & 1 & 0 \\
+Havyaka Kannada & kn & 2 & 2 & 3 & 0 & 0 \\
+Kundagannada & kn & 1 & 1 & 1 & 1 & 1 \\
+Paniya & ml & 1 & 1 & 1 & 0 & 0 \\
+Tulu & kn & 1 & 1 & 1 & 1 & 0 \\
+Yerukula & te & 1 & 1 & 1 & 1 & 0 \\
+No dialect & - & 2 & 2 & 2 & 0 & 0 \\
+\midrule
+Total & & 11 & 11 & 12 & 5 & 2 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Benchmark on an Unsupported Indian Language}
+To measure the method now, we apply Algorithm~1 to Odia. Odia is a scheduled language of India, but Whisper does not support it: the recognition API rejects its language code. It is therefore in the same position as an unsupported dialect, while the FLEURS benchmark \cite{conneau2023} supplies human-verified transcripts that play the role of the community's verified corrections. We drew a random sample (fixed seed) of 100 utterances from the FLEURS Odia development split (81 distinct sentences, 19.1\,min of read speech). The candidates were Bengali and Assamese, Odia's closest supported relatives in the Eastern Indo-Aryan family; Hindi, the most widely used supported Indo-Aryan language; and automatic identification. Each clip passed through the same pre-processing and Whisper large-v3 call as in the archive (Section~\ref{sec:system}). Whisper writes its draft in the script of the proxy language, so each draft was mapped into Odia script character by character using the parallel layout of the Brahmic Unicode blocks before scoring; a dialect whose proxy uses another script needs the same step. CER and WER follow Eq.~(\ref{eq:cer}) after removing punctuation and normalising Unicode to NFC, and each candidate is also compared with automatic identification utterance by utterance, with a two-sided sign test.
 
 \section{Results}\label{sec:results}
 \subsection{Deployed System}
@@ -144,7 +171,7 @@ Item & Value \\
 \midrule
 Dialects catalogued & 139, each with script, region, ISO code and proxy hint \\
 Audio pre-processing & 2\,MB stereo WAV $\rightarrow$ 24\,KB Opus ($\approx$1\%) \\
-Automated backend tests & 125 passing (SQLite and PostgreSQL) \\
+Automated backend tests & 127 passing (SQLite and PostgreSQL) \\
 Offline capture & IndexedDB queue and service worker \\
 Proxy selection & Built in: per-dialect CER/WER and comparison of candidates \\
 Deployment & Vercel (web), Render (API), Supabase (data) \\
@@ -153,11 +180,31 @@ Deployment & Vercel (web), Render (API), Supabase (data) \\
 \end{table}
 Table~\ref{tab:system} summarises the deployed system, available at \url{https://swara-veda.vercel.app}. End-to-end browser tests on desktop and phone screen sizes completed the full record, transcribe, correct and verify cycle without errors, and recordings made offline were uploaded and transcribed automatically once the connection returned. Automated tests check the selection logic of Algorithm~1: given drafts produced under each candidate, the archive scores them by Eq.~(\ref{eq:cer}), ranks them, stores the result and names the candidate with the lowest correction effort.
 
+\subsection{Proxy Selection on Odia}
+\begin{table}[t]
+\caption{Proxy Candidates on FLEURS Odia (100 Utterances)}
+\label{tab:fleurs}
+\centering
+\begin{tabular}{lrrc}
+\toprule
+Proxy & CER (\%) & WER (\%) & Better / worse than auto \\
+\midrule
+Bengali (bn) & 44.5 & 91.6 & 16 / 9 \\
+Assamese (as) & 60.7 & 105.1 & 19 / 80 \\
+\textbf{Hindi (hi)} & \textbf{37.7} & 108.8 & 52 / 42 \\
+Automatic & 44.6 & 92.9 & - \\
+\bottomrule
+\end{tabular}
+\end{table}
+Table~\ref{tab:fleurs} gives the results. Hindi had the lowest correction effort, a CER of 37.7\% against 44.6\% with automatic identification: a reduction of 6.9 points, with a 95\% bootstrap confidence interval of 4.2 to 9.6 points over utterances. Algorithm~1 therefore selects Hindi. The gain does not hold for every utterance: Hindi gave a lower CER than automatic identification on 52 utterances and a higher one on 42 (sign test, $p = 0.35$). Automatic identification treated most clips as Bengali (its draft was identical to the Bengali draft for 75 of the 100 utterances), and Bengali performed like the baseline. Assamese, a close relative of Odia, was clearly the worst, with a CER of 60.7\% and a higher CER than automatic identification on 80 of 99 utterances ($p < 0.001$).
+
+WER ranks the candidates differently, with Bengali best and Hindi above 100\%, because Hindi drafts often split one Odia word into two. For unwritten dialects, whose word boundaries are themselves unstable, we therefore select by CER, as in Eq.~(\ref{eq:argmin}). The result illustrates the point of the method: the proxy suggested by language family is not necessarily the one that minimises correction effort, and measuring the effort directly reveals this.
+
 \section{Ethics and Limitations}
-Recordings are private unless the speaker allows public listening, and only passages with explicit AI-training consent are exported. Each passage keeps its licence, and reference recordings from Wikimedia Commons are limited to open licences with attribution. The study has several limitations. The method has not yet been evaluated on field recordings at scale; with few verified passages per dialect, error rates are noisy and the ranking of candidates may change as data grows, which is why the archive repeats the comparison as verified passages accumulate. Re-transcribing with each candidate adds API cost that grows with $|L(d)|$. Character error rate assumes a stable orthography, while many dialects have competing spellings, so verifiers' conventions influence the measure. Finally, the approach depends on hosted models and on sustained community participation.
+Recordings are private unless the speaker allows public listening, and only passages with explicit AI-training consent are exported. Each passage keeps its licence, and reference recordings from Wikimedia Commons are limited to open licences with attribution. The study has several limitations. The method has been evaluated on one benchmark language, not yet on dialect field recordings: FLEURS contains read speech in a written language, and all 100 sampled utterances are by female speakers (FLEURS does not identify individual speakers), so results may differ for spontaneous speech, song and other voices. The per-utterance advantage of the selected proxy was not significant, and mapping drafts between scripts by Unicode position is approximate. Moreover, with few verified passages per dialect, error rates are noisy and the ranking of candidates may change as data grows, which is why the archive repeats the comparison as verified passages accumulate. Re-transcribing with each candidate adds API cost that grows with $|L(d)|$. Character error rate assumes a stable orthography, while many dialects have competing spellings, so verifiers' conventions influence the measure. Finally, the approach depends on hosted models and on sustained community participation.
 
 \section{Conclusion and Future Work}
-SwaraVeda shows that a consent-first community archive can turn the routine work of correcting machine drafts into a measurement that improves the drafts themselves. Using correction effort to choose a proxy language requires no additional labelling and adapts as verified data grows. Future work will fine-tune Whisper on the exported data with low-rank adapters (LoRA) \cite{hu2022} and report the reduction in word error rate per dialect, report the proxy-selection results of Section~\ref{sec:setup} on field recordings, extend the study to more dialects, add speaker diarisation, and offer the interface in Indian languages.
+SwaraVeda shows that a consent-first community archive can turn the routine work of correcting machine drafts into a measurement that improves the drafts themselves. Using correction effort to choose a proxy language requires no additional labelling and adapts as verified data grows; on Odia it lowered the character error rate by 6.9 points relative to automatic language identification and avoided a related language that performed far worse. Future work will fine-tune Whisper on the exported data with low-rank adapters (LoRA) \cite{hu2022} and report the reduction in word error rate per dialect, repeat the comparison of Section~\ref{sec:setup} on field recordings of Tulu, Kodava and Beary as the archive grows, extend the study to more dialects, add speaker diarisation, and offer the interface in Indian languages.
 
 \section*{Acknowledgment}
 The authors thank the Department of Computer Science and Engineering, RV Institute of Technology and Management, for its support, and the speakers who shared their voices.
@@ -187,6 +234,7 @@ The authors thank the Department of Computer Science and Engineering, RV Institu
 \bibitem{reimers2020} N. Reimers and I. Gurevych, ``Making monolingual sentence embeddings multilingual using knowledge distillation,'' in \textit{Proc. EMNLP}, 2020, pp. 4512-4525.
 \bibitem{pgvector} pgvector: Open-source vector similarity search for Postgres. [Online]. Available: \url{https://github.com/pgvector/pgvector}
 \bibitem{levenshtein1966} V. I. Levenshtein, ``Binary codes capable of correcting deletions, insertions, and reversals,'' \textit{Soviet Physics Doklady}, vol. 10, no. 8, pp. 707-710, 1966.
+\bibitem{conneau2023} A. Conneau, M. Ma, S. Khanuja, Y. Zhang, V. Axelrod, S. Dalmia, J. Riesa, C. Rivera, and A. Bapna, ``FLEURS: Few-shot learning evaluation of universal representations of speech,'' in \textit{Proc. IEEE Spoken Language Technology Workshop (SLT)}, 2023, pp. 798-805.
 \bibitem{hu2022} E. J. Hu \textit{et al.}, ``LoRA: Low-rank adaptation of large language models,'' in \textit{Proc. Int. Conf. Learning Representations (ICLR)}, 2022.
 \end{thebibliography}
 

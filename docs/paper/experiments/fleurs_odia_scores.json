@@ -1,0 +1,39 @@
+{
+ "passages": 100,
+ "sentences": 81,
+ "minutes": 19.08,
+ "candidates": [
+  {
+   "language": "bn",
+   "cer": 0.4449,
+   "wer": 0.9156,
+   "better": 16,
+   "worse": 9,
+   "same": 75,
+   "p": 0.229523
+  },
+  {
+   "language": "as",
+   "cer": 0.6071,
+   "wer": 1.0505,
+   "better": 19,
+   "worse": 80,
+   "same": 1,
+   "p": 0.0
+  },
+  {
+   "language": "hi",
+   "cer": 0.3771,
+   "wer": 1.0881,
+   "better": 52,
+   "worse": 42,
+   "same": 6,
+   "p": 0.353328
+  },
+  {
+   "language": "auto",
+   "cer": 0.4457,
+   "wer": 0.9291
+  }
+ ]
+}

@@ -19,7 +19,7 @@ def renumber(t):
     t = re.sub(r"\b(Sections?) (VIII|VII|VI|IV|V|III|II|I)\b(?: and (VIII|VII|VI|IV|V|III|II|I)\b)?",
                lambda m: f"{m.group(1)} {ROMAN[m.group(2)]}" + (f" and {ROMAN[m.group(3)]}" if m.group(3) else ""), t)
     t = re.sub(r"\bFig\. (\d+)", r"Figure \1", t)
-    t = re.sub(r"\bTable I\b", "Table 1", t)
+    t = re.sub(r"\b(Tables?) (IV|III|II|I)\b", lambda m: f"{m.group(1)} {ROMAN[m.group(2)]}", t)
     return t
 
 
@@ -100,7 +100,7 @@ def picture():
 BORDER = '<w:{s} w:val="single" w:sz="4" w:space="0" w:color="000000"/>'
 
 
-def table(rows, widths, header=True):
+def table(rows, widths, header=True, size=22):
     total = sum(widths)
     grid = "".join(f'<w:gridCol w:w="{w}"/>' for w in widths)
     borders = "".join(BORDER.format(s=s) for s in ("top", "left", "bottom", "right", "insideH", "insideV"))
@@ -110,7 +110,7 @@ def table(rows, widths, header=True):
         out.append("<w:tr>" + ('<w:trPr><w:tblHeader/></w:trPr>' if header and r_i == 0 else ""))
         for c_i, cell in enumerate(row):
             out.append(f'<w:tc><w:tcPr><w:tcW w:w="{widths[c_i]}" w:type="dxa"/></w:tcPr>'
-                       + para(cell if cell.startswith("<w:r>") else run(cell, 22, b=header and r_i == 0), jc="left", before=40, after=40)
+                       + para(cell if cell.startswith("<w:r>") else run(cell, size, b=header and r_i == 0), jc="left" if c_i == 0 else "center", before=40, after=40)
                        + "</w:tc>")
         out.append("</w:tr>")
     out.append("</w:tbl>")
@@ -159,7 +159,9 @@ while i < len(body):
             out.append(algorithm(cells[0][0]))
         else:
             data = [[text_of(c[0]) for c in r] for r in cells]
-            out.append(table([[renumber(x) for x in r] for r in data], [3000, 6072]))
+            n = len(data[0])
+            widths = [3000, 6072] if n == 2 else [1700, 900] + [1294] * 4 + [1296] if n == 7 else [9072 - (n - 1) * (6072 // (n - 1))] + [6072 // (n - 1)] * (n - 1)
+            out.append(table([[renumber(x) for x in r] for r in data], widths, size=22 if n <= 3 else 20))
             out.append(para("", before=0, after=0))
         i += 1
         continue
@@ -185,7 +187,7 @@ while i < len(body):
     elif first.get("smallCaps") and txt.startswith("TABLE "):
         label = txt.split()[1]
         nxt = text_of(body[i + 1])
-        out.append(caption(f"Table {ROMAN.get(label, label)}.", nxt[0] + nxt[1:].lower()))
+        out.append(caption(f"Table {ROMAN.get(label, label)}.", {"Deployed System": "Deployed system", "Pilot Data in the Live Archive": "Pilot data in the live archive", "Proxy Candidates on FLEURS Odia (100 Utterances)": "Proxy candidates on FLEURS Odia (100 utterances)"}.get(nxt, nxt)))
         i += 2
         continue
     elif first.get("italics") and len(kids) == 1 and re.match(r"^[A-H]\. ", txt):
